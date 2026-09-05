@@ -1,0 +1,6 @@
+pandas
+fastapi
+uvicorn
+pytest
+pydantic
+anthropic
