@@ -22,7 +22,7 @@ class MatcherConfig:
 @dataclass
 class EscalatorConfig:
     """Configuration for the LLM escalation layer (PRD §7.3)."""
-    model: str = "claude-3-5-haiku-20241022"
+    model: str = "qwen3.1"
     confidence_threshold: float = 0.70      # hard gate — below this → unresolved
     top_n_candidates: int = 5               # max candidates sent to LLM per row
     candidate_window_pct: float = 0.10      # ±10 % of ledger amount for candidates

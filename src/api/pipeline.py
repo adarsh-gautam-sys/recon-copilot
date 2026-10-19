@@ -35,11 +35,14 @@ class PipelineRequest:
     n_rows: int = 300
     seed: int = 42
     use_existing_data: bool = True          # skip generation when CSVs already exist
-    llm_mode: str = "offline"               # "offline" | "heuristic" | "openrouter"
+    llm_mode: str = "offline"               # "offline" | "heuristic" | "ollama" | "openrouter"
     confidence_threshold: float = 0.70      # code-enforced confidence gate
+    ollama_model: str = "qwen3.1"           # "qwen3.1" | "gemma4"
+    ollama_host: str = "https://ollama.com/v1"
+    ollama_api_key: Optional[str] = None
     openrouter_api_key: Optional[str] = None
     openrouter_model: str = "z-ai/glm-5.2:free"
-    llm_delay_ms: int = 2000               # inter-call delay (ms) for free-tier APIs
+    llm_delay_ms: int = 500                 # inter-call delay (ms) for free-tier APIs
 
 
 # ---------------------------------------------------------------------------
@@ -128,7 +131,7 @@ def run_pipeline(
     ------
     1. Data generation (skipped when use_existing_data=True and CSVs exist).
     2. Deterministic matcher (rule-based, confidence 1.0).
-    3. LLM escalator (offline mock, heuristic agent, or live OpenRouter call).
+    3. LLM escalator (offline mock, heuristic agent, or live Ollama / OpenRouter call).
     4. Audit report generator (writes JSON to outputs_dir, prints summary).
     """
     # Stage 1 — generate or load data
@@ -147,8 +150,9 @@ def run_pipeline(
 
     # Stage 3 — LLM escalate
     llm_client = _build_llm_client(req)
-    delay_sec = (req.llm_delay_ms / 1000.0) if req.llm_mode == "openrouter" else 0.0
+    delay_sec = (req.llm_delay_ms / 1000.0) if req.llm_mode in ("ollama", "openrouter") else 0.0
     cfg = EscalatorConfig(
+        model=req.ollama_model if req.llm_mode == "ollama" else req.openrouter_model,
         confidence_threshold=req.confidence_threshold,
         call_delay_seconds=delay_sec,
     )
@@ -165,6 +169,13 @@ def run_pipeline(
 
 def _build_llm_client(req: PipelineRequest):
     """Return the appropriate LLM client for the given mode."""
+    if req.llm_mode == "ollama":
+        from src.matching.llm_escalator import OllamaLLMClient
+        return OllamaLLMClient(
+            model=req.ollama_model,
+            api_key=req.ollama_api_key,
+            base_url=req.ollama_host,
+        )
     if req.llm_mode == "openrouter":
         key = req.openrouter_api_key or os.environ.get("OPENROUTER_API_KEY")
         if key:

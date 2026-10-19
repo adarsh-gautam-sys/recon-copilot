@@ -1,10 +1,10 @@
 """
 Live LLM escalation run against real unmatched rows.
-Uses OpenRouter (GLM or any supported model) via OPENROUTER_API_KEY.
+Uses Ollama Cloud Free Tier (or local Ollama daemon) with qwen3.1 or gemma4.
 
 Usage:
-  $env:OPENROUTER_API_KEY = 'your-key-here'
-  python run_llm_escalation.py [--model thudm/glm-4-9b:free] [--probe-only]
+  $env:OLLAMA_API_KEY = 'your-ollama-cloud-key'   # optional if running local ollama serve
+  python run_llm_escalation.py [--model qwen3.1] [--model gemma4] [--probe-only]
 """
 import argparse
 import json
@@ -21,30 +21,27 @@ from src.config import EscalatorConfig
 from src.matching.deterministic_matcher import (
     DeterministicMatcher, load_bank, load_gateway, load_ledger
 )
-from src.matching.llm_escalator import LLMEscalator, OpenRouterLLMClient
+from src.matching.llm_escalator import LLMEscalator, OllamaLLMClient
 
 DATA_DIR = Path("data")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run LLM escalation on unmatched rows.")
-    parser.add_argument("--model", default="z-ai/glm-5.2:free",
-                        help="OpenRouter model slug")
+    parser = argparse.ArgumentParser(description="Run Ollama LLM escalation on unmatched rows.")
+    parser.add_argument("--model", default="qwen3.1", choices=["qwen3.1", "gemma4"],
+                        help="Ollama model (qwen3.1 or gemma4)")
+    parser.add_argument("--host", default=os.environ.get("OLLAMA_HOST", "https://ollama.com/v1"),
+                        help="Ollama API host (Cloud free tier https://ollama.com/v1 or local http://localhost:11434/v1)")
     parser.add_argument("--probe-only", action="store_true",
                         help="Run only the 5-row probe, skip full run")
     parser.add_argument("--probe-n", type=int, default=5,
                         help="Number of rows in the probe batch (default: 5)")
-    parser.add_argument("--delay-ms", type=int, default=2000,
-                        help="Milliseconds to wait between API calls (default: 2000)")
+    parser.add_argument("--delay-ms", type=int, default=500,
+                        help="Milliseconds to wait between API calls (default: 500)")
     args = parser.parse_args()
 
-    api_key = os.environ.get("OPENROUTER_API_KEY")
-    if not api_key:
-        print("[ERROR] OPENROUTER_API_KEY environment variable not set.")
-        print("  PowerShell: $env:OPENROUTER_API_KEY = 'sk-or-...'")
-        sys.exit(1)
-
-    print(f"Model : {args.model}")
+    api_key = os.environ.get("OLLAMA_API_KEY")
+    print(f"Engine: Ollama ({args.host}) | Model: {args.model}")
 
     # Load data
     ledger  = load_ledger(DATA_DIR / "internal_ledger.csv")
@@ -57,8 +54,8 @@ def main() -> None:
     print(f"Deterministic matcher: {len(matched_rule)} rule-matched, {len(unmatched)} unmatched\n")
 
     # Build escalator
-    client = OpenRouterLLMClient(model=args.model, api_key=api_key)
-    cfg = EscalatorConfig(confidence_threshold=0.70, call_delay_seconds=args.delay_ms / 1000.0)
+    client = OllamaLLMClient(model=args.model, api_key=api_key, base_url=args.host)
+    cfg = EscalatorConfig(model=args.model, confidence_threshold=0.70, call_delay_seconds=args.delay_ms / 1000.0)
     escalator = LLMEscalator(client=client, config=cfg)
 
     # --- Probe batch ---

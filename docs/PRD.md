@@ -130,15 +130,16 @@ Simulated user: a finance-ops analyst who currently reconciles settlement report
 - Report includes: overall match rate (rule-only, rule+LLM, and total), a breakdown by `exception_category`, and the full per-row audit trail.
 - Match rate must be computed **against the answer key**, not self-reported — enforcing objective ground-truth evaluation of agentic precision.
 
-### 7.5 API & Interactive Workbench Layer
-- `GET /` — serves the interactive Statistical Bulletin & Verification Workbench UI.
+### 7.5 API, Streamlit & Interactive Workbench Layer
+- `streamlit_app.py` — Streamlit Community Cloud deployment entrypoint with Ollama (`qwen3.1` / `gemma4` cloud free tier) and interactive confidence gate.
+- `GET /` — serves the interactive Statistical Bulletin & Verification Workbench UI via FastAPI.
 - `POST /reconcile` — runs the full pipeline on the three CSVs, returns the report as JSON.
 - `GET /report/{run_id}` — fetch a prior run's report.
 
 ## 8. Technical Decisions & Trade-offs (Agentic Systems Engineering)
 
 - **cuDF/RAPIDS vs pandas:** RAPIDS needs an NVIDIA GPU + CUDA toolchain — a real risk to lose build time on setup. Decision: build on pandas first (correctness), and only swap in `cudf.pandas` (drop-in accelerator mode, same API) if GPU capacity is needed. Document this trade-off explicitly in the README as an engineering design decision.
-- **LLM provider:** any structured-output-capable API (Claude/OpenAI/OpenRouter) plus a deterministic local heuristic agent simulator (`heuristic` mode) so evaluators can test bounded escalation with zero API keys.
+- **LLM provider:** Ollama Cloud Free Tier (`qwen3.1` or `gemma4`) via `OllamaLLMClient`, plus a deterministic local heuristic agent simulator (`heuristic` mode) so evaluators can test bounded escalation with zero API keys.
 - **Confidence threshold:** start at 0.70, and expose the threshold distribution so the hard gate is justified empirically.
 
 ## 9. Metrics & Evaluation
@@ -152,7 +153,7 @@ Simulated user: a finance-ops analyst who currently reconciles settlement report
 ## 10. Deliverables
 
 - Complete repository structured per §12 (Repo Layout).
-- Interactive web verification workbench served by FastAPI (`GET /`).
+- Streamlit deployment app (`streamlit_app.py`) and FastAPI web verification workbench (`GET /`).
 - README: problem formulation, hybrid agent architecture diagram, engineering trade-offs in §8, and failure-mode analysis.
 - This PRD, committed to the repo (`/docs/PRD.md`).
 
@@ -171,6 +172,7 @@ reconciliation-copilot/
 ├── README.md
 ├── PRODUCT.md
 ├── DESIGN.md
+├── streamlit_app.py
 ├── requirements.txt
 ├── docs/
 │   └── PRD.md
@@ -211,4 +213,4 @@ reconciliation-copilot/
 | Unconstrained LLM hallucination on financial data | Hard confidence gate (`>= 0.70`) enforced in Python code; deterministic rules execute first |
 | Over-claiming accuracy | Always report against `answer_key.csv`, never a self-reported number |
 | GPU setup overhead | pandas-first architecture with `cudf.pandas` drop-in compatibility |
-| Evaluators lacking external LLM API keys | Ship a one-command entry point, offline rule baseline, and bounded heuristic agent simulator alongside live OpenRouter mode |
+| Evaluators lacking external LLM API keys | Ship Streamlit app + one-command entry point with offline rule baseline, bounded heuristic agent simulator, and Ollama Cloud Free Tier (`qwen3.1` / `gemma4`) |

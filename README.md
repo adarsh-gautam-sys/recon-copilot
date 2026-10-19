@@ -56,16 +56,17 @@ prove, and clearly flags what it can't. This tool is a **verifier**, not a gener
 |------|------|
 | `src/data_gen/generate_synthetic_data.py` | Generates 7 noise categories with a fixed seed |
 | `src/matching/deterministic_matcher.py` | Rule engine: amount ± ₹0.01, shared ref, ±3-day window |
-| `src/matching/llm_escalator.py` | LLM layer + hard confidence gate (code, not prompt) |
+| `src/matching/llm_escalator.py` | LLM layer (`OllamaLLMClient` for `qwen3.1` / `gemma4`) + hard confidence gate |
 | `src/reporting/audit_report.py` | Completeness check, all 4 metrics vs answer key, JSON + console |
-| `src/api/pipeline.py` | Wires the 4 stages together (`offline`, `heuristic`, `openrouter`) |
+| `src/api/pipeline.py` | Wires the 4 stages together (`offline`, `heuristic`, `ollama`) |
+| `streamlit_app.py` | Streamlit Community Cloud deployment entrypoint |
 | `src/api/main.py` | FastAPI: `GET /` (Web Workbench), `/health`, `POST /reconcile`, `GET /report/{run_id}` |
 | `src/api/static/index.html` | Central Bank Statistical Bulletin verification workbench UI |
 | `src/config.py` | Typed config dataclasses (thresholds, window, model) |
 
 ---
 
-## Quick Start (one command)
+## Quick Start & Streamlit Deployment
 
 ```bash
 # Clone
@@ -75,30 +76,28 @@ cd recon-copilot
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the full pipeline demo (no API key required — offline LLM mode)
+# Launch the Streamlit app locally
+streamlit run streamlit_app.py
+
+# Or run the CLI pipeline demo (no API key required)
 python run_demo.py
 ```
 
-Or with the Makefile:
-
-```bash
-make demo        # install + run demo
-make test        # run all pytest tests
-make serve       # start FastAPI + Web Workbench on http://localhost:8000
-```
-
-On **Windows**, use:
-
-```powershell
-pip install -r requirements.txt
-python run_demo.py
-```
+### Deploying on Streamlit Community Cloud
+1. Push this repo to GitHub (`https://github.com/adarsh-gautam-sys/recon-copilot`).
+2. In [share.streamlit.io](https://share.streamlit.io), select **New app** → choose the repo and set **Main file path** to `streamlit_app.py`.
+3. Under **Advanced settings → Secrets**, optionally add your Ollama Cloud Free Tier key:
+   ```toml
+   OLLAMA_API_KEY = "your-ollama-cloud-api-key"
+   OLLAMA_HOST = "https://ollama.com/v1"
+   ```
+4. Select either **`qwen3.1`** or **`gemma4`** in the sidebar under `Ollama Cloud Free Tier (qwen3.1 / gemma4)` (or use `Bounded Agent Simulator (Heuristic)` with zero external keys).
 
 ---
 
-## Web Workbench & API
+## Web Workbench & FastAPI
 
-Start the server and open **`http://localhost:8000`** in your browser:
+Start the FastAPI server and open **`http://localhost:8000`** in your browser:
 ```bash
 uvicorn src.api.main:app --reload --port 8000
 ```
@@ -121,14 +120,15 @@ Serves the interactive **Statistical Bulletin & Three-Way Settlement Verifier** 
 }
 ```
 
-**With live LLM** (OpenRouter):
+**With live Ollama LLM** (`qwen3.1` or `gemma4` on Ollama Cloud Free Tier):
 ```json
 {
   "use_existing_data": true,
-  "llm_mode": "openrouter",
-  "openrouter_api_key": "sk-or-...",
-  "openrouter_model": "z-ai/glm-5.2:free",
-  "llm_delay_ms": 3000
+  "llm_mode": "ollama",
+  "ollama_model": "qwen3.1",
+  "ollama_host": "https://ollama.com/v1",
+  "ollama_api_key": "your-ollama-key",
+  "llm_delay_ms": 500
 }
 ```
 
@@ -185,10 +185,11 @@ This is the judgment call the "AI Judgment" evaluation bar is checking for.
 
 ### LLM provider + confidence threshold
 
-**Provider: OpenRouter** (OpenAI-compatible endpoint, any model). The LLM client
-is a `Protocol` — swapping providers requires implementing a two-method interface
-(`complete(system, user) -> str`). `AnthropicLLMClient` and `OpenRouterLLMClient`
-are both included.
+**Provider: Ollama Cloud Free Tier (`qwen3.1` or `gemma4`)**. The LLM client
+is a `Protocol` — swapping providers requires implementing a single method
+(`complete(system, user) -> str`). `OllamaLLMClient` supports both Ollama Cloud
+Free Tier (`https://ollama.com/v1` with `OLLAMA_API_KEY`) and local Ollama daemons
+(`http://localhost:11434/v1`) using either `qwen3.1` or `gemma4`.
 
 **Threshold: 0.70.** The hard gate is enforced **in code**, not in the prompt —
 the prompt never mentions the threshold so the LLM can't game it. Based on the
@@ -219,13 +220,14 @@ The fix cost ~10 minutes; the lesson cost zero.
 ## Tests
 
 ```
-31 tests / 5 modules — all passing in < 1 second
+37 tests / 6 modules — all passing in < 1 second
 
 tests/test_data_gen.py          5 tests  — determinism, noise dist, answer key
 tests/test_deterministic_matcher.py  8 tests  — edge cases, boundaries, no false-pos
 tests/test_llm_escalator.py     6 tests  — mocked LLM, hard gate, error paths
 tests/test_audit_report.py      9 tests  — completeness, metrics, edge cases
 tests/test_integration.py       3 tests  — full pipeline (100-row fixture)
+tests/test_api.py               6 tests  — FastAPI + Ollama / Heuristic / Offline modes
 ```
 
 ```bash
@@ -241,11 +243,12 @@ python -m pytest tests/ -v
 ```
 reconciliation-copilot/
 ├── README.md
+├── streamlit_app.py       # Streamlit deployment entrypoint
 ├── requirements.txt
 ├── Makefile
 ├── run_demo.py            # one-command demo
 ├── run_demo.sh            # bash wrapper
-├── run_llm_escalation.py  # live LLM run (needs OPENROUTER_API_KEY)
+├── run_llm_escalation.py  # live Ollama run (qwen3.1 / gemma4)
 ├── docs/PRD.md
 ├── src/
 │   ├── config.py

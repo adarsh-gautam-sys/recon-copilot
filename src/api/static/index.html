@@ -933,8 +933,8 @@
               <label for="llmModeSelect">Agent Escalation Engine</label>
               <select id="llmModeSelect" class="field-control">
                 <option value="heuristic" selected>Bounded Agent Simulator (Heuristic)</option>
+                <option value="ollama">Ollama Cloud Free Tier (qwen3.1 / gemma4)</option>
                 <option value="offline">Deterministic Rule Baseline (Offline)</option>
-                <option value="openrouter">Live OpenRouter LLM API</option>
               </select>
             </div>
             <div class="field-group">
@@ -949,12 +949,15 @@
 
           <div id="openrouterDrawer" class="openrouter-drawer">
             <div class="field-group">
-              <label for="apiKeyInput">OpenRouter API Key</label>
-              <input id="apiKeyInput" type="password" class="field-control" placeholder="sk-or-v1-... (or uses env var)" />
+              <label for="modelInput">Ollama Model (Cloud Free Tier)</label>
+              <select id="modelInput" class="field-control">
+                <option value="qwen3.1" selected>qwen3.1 (Cloud Free Tier)</option>
+                <option value="gemma4">gemma4 (Cloud Free Tier)</option>
+              </select>
             </div>
             <div class="field-group">
-              <label for="modelInput">Model Slug</label>
-              <input id="modelInput" type="text" class="field-control" value="z-ai/glm-5.2:free" />
+              <label for="apiKeyInput">Ollama Cloud API Key / Host</label>
+              <input id="apiKeyInput" type="password" class="field-control" placeholder="OLLAMA_API_KEY (or blank for local)" />
             </div>
           </div>
 
@@ -1205,7 +1208,7 @@
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
     llmModeSelect.addEventListener('change', () => {
-      openrouterDrawer.classList.toggle('visible', llmModeSelect.value === 'openrouter');
+      openrouterDrawer.classList.toggle('visible', llmModeSelect.value === 'ollama');
     });
 
     resetTauBtn.addEventListener('click', () => {
@@ -1271,9 +1274,9 @@
         use_existing_data: (nRows === 300 && seed === 42),
         llm_mode: mode,
         confidence_threshold: tau,
-        openrouter_api_key: document.getElementById('apiKeyInput').value.trim() || null,
-        openrouter_model: document.getElementById('modelInput').value.trim() || 'z-ai/glm-5.2:free',
-        llm_delay_ms: 1500
+        ollama_model: document.getElementById('modelInput').value.trim() || 'qwen3.1',
+        ollama_api_key: document.getElementById('apiKeyInput').value.trim() || null,
+        llm_delay_ms: 500
       };
 
       try {

@@ -168,6 +168,75 @@ class OpenRouterLLMClient:
 
 
 # ---------------------------------------------------------------------------
+# Ollama implementation (Cloud Free Tier or local daemon — qwen3.1 / gemma4)
+# ---------------------------------------------------------------------------
+
+class OllamaLLMClient:
+    """
+    LLM client backed by Ollama's OpenAI-compatible API (Cloud Free Tier or local).
+
+    Supports ``qwen3.1`` and ``gemma4`` on Ollama Cloud (https://ollama.com/v1)
+    or a local Ollama server (http://localhost:11434/v1).
+    Reads OLLAMA_API_KEY and OLLAMA_HOST from the environment when not passed.
+    """
+
+    DEFAULT_HOST = "https://ollama.com/v1"
+    SUPPORTED_MODELS = ("qwen3.1", "gemma4")
+
+    def __init__(
+        self,
+        model: str = "qwen3.1",
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        timeout: int = 30,
+    ) -> None:
+        try:
+            from openai import OpenAI as _OpenAI
+        except ImportError as exc:
+            raise RuntimeError(
+                "openai package not installed. Run: pip install openai"
+            ) from exc
+
+        raw_host = (base_url or os.environ.get("OLLAMA_HOST") or self.DEFAULT_HOST).rstrip("/")
+        if not raw_host.endswith("/v1"):
+            raw_host = f"{raw_host}/v1"
+
+        self.model = model
+        self.base_url = raw_host
+        resolved_key = api_key or os.environ.get("OLLAMA_API_KEY") or "ollama"
+        self._client = _OpenAI(
+            base_url=self.base_url,
+            api_key=resolved_key,
+            timeout=float(timeout),
+        )
+
+    def complete(self, system: str, user: str) -> str:
+        import time
+
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = self._client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ],
+                    max_tokens=512,
+                )
+                return response.choices[0].message.content or ""
+            except Exception as exc:
+                is_rate_limit = "429" in str(exc) or "RateLimitError" in type(exc).__name__
+                if is_rate_limit and attempt < max_retries - 1:
+                    wait = 5 * (attempt + 1)
+                    logger.warning("Ollama rate-limited; retrying in %ds (attempt %d/%d)", wait, attempt + 1, max_retries)
+                    time.sleep(wait)
+                    continue
+                raise
+
+
+
+# ---------------------------------------------------------------------------
 # Parsed LLM response
 # ---------------------------------------------------------------------------
 

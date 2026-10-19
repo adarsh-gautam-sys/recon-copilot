@@ -130,3 +130,25 @@ def test_workbench_and_heuristic_mode(client):
     assert body["red_flag"] is False
     assert body["verified_match_rate"] == 1.0
 
+
+# ---------------------------------------------------------------------------
+# Test 6 — OllamaLLMClient configures qwen3.1 and gemma4 with /v1 host normalization
+# ---------------------------------------------------------------------------
+
+def test_ollama_client_and_pipeline_wiring():
+    from src.api.pipeline import PipelineRequest, _build_llm_client
+    from src.matching.llm_escalator import OllamaLLMClient
+
+    for model_name in ("qwen3.1", "gemma4"):
+        req = PipelineRequest(
+            llm_mode="ollama",
+            ollama_model=model_name,
+            ollama_host="https://ollama.com",
+            ollama_api_key="test-ollama-cloud-key",
+        )
+        llm_client = _build_llm_client(req)
+        assert isinstance(llm_client, OllamaLLMClient)
+        assert llm_client.model == model_name
+        assert llm_client.base_url == "https://ollama.com/v1"
+
+

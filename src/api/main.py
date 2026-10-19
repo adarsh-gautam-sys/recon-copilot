@@ -73,13 +73,25 @@ class ReconcileRequest(BaseModel):
     )
     llm_mode: str = Field(
         "offline",
-        description="'offline' (rule baseline), 'heuristic' (bounded agent simulator), or 'openrouter' (live LLM)."
+        description="'offline' (rule baseline), 'heuristic' (bounded agent simulator), 'ollama' (Ollama qwen3.1 / gemma4), or 'openrouter'."
     )
     confidence_threshold: float = Field(
         0.70,
         ge=0.0,
         le=1.0,
         description="Code-enforced confidence gate threshold for LLM proposals."
+    )
+    ollama_model: str = Field(
+        "qwen3.1",
+        description="Ollama model name ('qwen3.1' or 'gemma4')."
+    )
+    ollama_host: str = Field(
+        "https://ollama.com/v1",
+        description="Ollama API host URL (Cloud free tier https://ollama.com/v1 or local http://localhost:11434/v1)."
+    )
+    ollama_api_key: Optional[str] = Field(
+        None,
+        description="Ollama Cloud API key. Falls back to OLLAMA_API_KEY env var."
     )
     openrouter_api_key: Optional[str] = Field(
         None,
@@ -90,7 +102,7 @@ class ReconcileRequest(BaseModel):
         description="OpenRouter model slug."
     )
     llm_delay_ms: int = Field(
-        2000,
+        500,
         ge=0,
         description="Milliseconds to wait between LLM API calls (helps with free-tier rate limits)."
     )
@@ -146,7 +158,7 @@ def reconcile(body: ReconcileRequest) -> ReconcileResponse:
 
     1. Generate synthetic CSV data (or load existing ones).
     2. Apply the deterministic rule-based matcher.
-    3. Escalate unmatched rows to the LLM (offline, heuristic simulator, or live OpenRouter).
+    3. Escalate unmatched rows to the LLM (offline, heuristic simulator, or live Ollama).
     4. Generate audit report, save to outputs/, and return as JSON.
     """
     req = PipelineRequest(
@@ -155,6 +167,9 @@ def reconcile(body: ReconcileRequest) -> ReconcileResponse:
         use_existing_data=body.use_existing_data,
         llm_mode=body.llm_mode,
         confidence_threshold=body.confidence_threshold,
+        ollama_model=body.ollama_model,
+        ollama_host=body.ollama_host,
+        ollama_api_key=body.ollama_api_key,
         openrouter_api_key=body.openrouter_api_key,
         openrouter_model=body.openrouter_model,
         llm_delay_ms=body.llm_delay_ms,
