@@ -152,3 +152,19 @@ def test_ollama_client_and_pipeline_wiring():
         assert llm_client.base_url == "https://ollama.com/v1"
 
 
+# ---------------------------------------------------------------------------
+# Test 7 — Streamlit app executes and renders all tabs with zero exceptions
+# ---------------------------------------------------------------------------
+
+def test_streamlit_app_renders_without_exception():
+    from streamlit.testing.v1 import AppTest
+
+    app_path = Path(__file__).resolve().parent.parent / "streamlit_app.py"
+    at = AppTest.from_file(app_path, default_timeout=30).run()
+    assert len(at.exception) == 0, f"Streamlit exceptions: {[e.value for e in at.exception]}"
+    assert len(at.metric) == 4
+    assert at.metric[0].value == "300"
+    assert "267" in at.metric[1].value
+
+
+

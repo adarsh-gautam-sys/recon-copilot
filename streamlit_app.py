@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import asdict
 from pathlib import Path
 
@@ -67,11 +68,11 @@ with st.sidebar:
     )
 
     default_key = os.environ.get("OLLAMA_API_KEY", OllamaLLMClient.DEFAULT_CLOUD_KEY)
-    try:
-        if "OLLAMA_API_KEY" in st.secrets:
-            default_key = st.secrets["OLLAMA_API_KEY"]
-    except Exception:
-        pass
+    if (BASE_DIR / ".streamlit" / "secrets.toml").exists():
+        try:
+            default_key = st.secrets.get("OLLAMA_API_KEY", default_key)
+        except Exception:
+            pass
 
     ollama_api_key = st.text_input(
         "Ollama API Key",
@@ -89,7 +90,7 @@ with st.sidebar:
         help="Any AI match below τ is blocked in Python code and sent to the human exception queue.",
     )
 
-    run_btn = st.button("▶ Run 300-Row Reconciliation", type="primary", use_container_width=True)
+    run_btn = st.button("▶ Run 300-Row Reconciliation", type="primary", width="stretch")
 
 # ---------------------------------------------------------------------------
 # Header — Clear Problem & Solution Statement
@@ -104,9 +105,10 @@ st.info(
 )
 
 # ---------------------------------------------------------------------------
-# Run Pipeline (Cached in Session State)
+# Run Pipeline (Cached in Session State; auto-refreshes when mode changes)
 # ---------------------------------------------------------------------------
-if "report_dict" not in st.session_state or run_btn:
+mode_changed = st.session_state.get("active_llm_mode") != llm_mode
+if "report_dict" not in st.session_state or run_btn or (mode_changed and llm_mode != "ollama"):
     req = PipelineRequest(
         n_rows=300,
         seed=42,
@@ -121,44 +123,73 @@ if "report_dict" not in st.session_state or run_btn:
     with st.spinner(f"Running reconciliation ({engine_choice})..."):
         report = run_pipeline(req, DATA_DIR, OUTPUTS_DIR)
         st.session_state["report_dict"] = asdict(report)
+        st.session_state["active_llm_mode"] = llm_mode
 
 report_data = st.session_state["report_dict"]
 
-# Re-apply confidence gate slider dynamically so students/evaluators can see the gate work live
+# Re-apply confidence gate slider dynamically so metrics, breakdown table, and audit trail stay in sync
 rows = []
 rule_matched = 0
 llm_matched = 0
 unresolved = 0
 verified_correct = 0
+llm_correct = 0
+noise_summary: dict[str, dict[str, int]] = {}
 
 for orig in report_data["per_row_audit"]:
     r = dict(orig)
     if r["engine"] != "rule":
         conf = float(r.get("confidence") or 0.0)
         utr = r.get("matched_bank_utr")
+        if not utr and r.get("reasoning"):
+            m = re.search(r"UTR_\d+", r["reasoning"])
+            if m:
+                utr = m.group(0)
         if conf >= confidence_threshold and utr:
             gt_list = [x for x in (r.get("ground_truth_match") or "").split("|") if x]
             r["match_type"] = "llm"
+            r["matched_bank_utr"] = utr
             r["matches_ground_truth"] = utr in gt_list
             r["exception_category"] = None
         else:
             r["match_type"] = "unresolved"
             r["matched_bank_utr"] = None
-            r["exception_category"] = "low_confidence" if (conf > 0 and utr) else (r.get("exception_category") or "no_llm_match")
+            r["matched_gateway_payment_id"] = None
+            r["exception_category"] = (
+                "low_confidence" if (conf > 0 and utr) else (r.get("exception_category") or "no_llm_match")
+            )
             r["matches_ground_truth"] = not bool(r.get("ground_truth_match"))
 
     if r["match_type"] == "rule":
         rule_matched += 1
     elif r["match_type"] == "llm":
         llm_matched += 1
+        if r.get("matches_ground_truth"):
+            llm_correct += 1
     else:
         unresolved += 1
 
     if r.get("matches_ground_truth"):
         verified_correct += 1
+
+    ntype = r.get("noise_type", "unknown")
+    bucket = noise_summary.setdefault(
+        ntype, {"total": 0, "matched": 0, "unresolved": 0, "correctly_matched": 0}
+    )
+    bucket["total"] += 1
+    if r["match_type"] in ("rule", "llm"):
+        bucket["matched"] += 1
+    else:
+        bucket["unresolved"] += 1
+    if r.get("matches_ground_truth"):
+        bucket["correctly_matched"] += 1
+
     rows.append(r)
 
 total = len(rows)
+llm_precision = (llm_correct / llm_matched) if llm_matched > 0 else None
+total_match_rate = (rule_matched + llm_matched) / total if total else 0.0
+red_flag = (total_match_rate > 0.70) and (llm_precision is not None and llm_precision < 0.70)
 
 # ---------------------------------------------------------------------------
 # Three Explainable Tabs
@@ -170,16 +201,19 @@ tab_dashboard, tab_live_ollama, tab_explain = st.tabs([
 ])
 
 with tab_dashboard:
-    # 4 Top-Level Metrics
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Total Ledger Transactions", f"{total}", "100% Accounted")
     k2.metric("Agent 1: Rule-Matched", f"{rule_matched} ({rule_matched/total*100:.1f}%)", "Exact Math (±₹0.01)")
-    k3.metric(f"Agent 2: AI-Matched (≥ {confidence_threshold:.2f})", f"{llm_matched} ({llm_matched/total*100:.1f}%)", f"Model: {ollama_model}")
+    k3.metric(
+        f"Agent 2: AI-Matched (≥ {confidence_threshold:.2f})",
+        f"{llm_matched} ({llm_matched/total*100:.1f}%)",
+        f"Mode: {st.session_state.get('active_llm_mode', llm_mode).upper()}",
+    )
     k4.metric("Flagged Exceptions (< Gate)", f"{unresolved} ({unresolved/total*100:.1f}%)", "Sent to Human Review")
 
     st.success(
         f"**Ground-Truth Answer Key Score:** **{verified_correct} / {total} ({verified_correct/total*100:.1f}%)** "
-        f"verified against `data/answer_key.csv` | **Audit Red Flag:** `{report_data['red_flag']}`"
+        f"verified against `data/answer_key.csv` | **Audit Red Flag:** `{red_flag}`"
     )
 
     col_a, col_b = st.columns([1.1, 1.9])
@@ -193,16 +227,16 @@ with tab_dashboard:
                 "Unresolved": v["unresolved"],
                 "Correct vs Key": v["correctly_matched"],
             }
-            for k, v in report_data["noise_type_summary"].items()
+            for k, v in sorted(noise_summary.items())
         ]
-        st.dataframe(pd.DataFrame(noise_table), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(noise_table), width="stretch", hide_index=True)
 
         st.download_button(
             "⬇ Download Audit Report (JSON)",
             data=json.dumps(report_data, indent=2),
             file_name=f"audit_report_{report_data['run_id']}.json",
             mime="application/json",
-            use_container_width=True,
+            width="stretch",
         )
 
     with col_b:
@@ -219,18 +253,19 @@ with tab_dashboard:
         elif "Rule-Matched" in filter_choice:
             df = df[df["match_type"] == "rule"]
 
+        display_cols = [
+            "txn_id",
+            "noise_type",
+            "matched_gateway_payment_id",
+            "matched_bank_utr",
+            "match_type",
+            "confidence",
+            "matches_ground_truth",
+            "reasoning",
+        ]
         st.dataframe(
-            df[[
-                "ledger_txn_id",
-                "noise_type",
-                "matched_gateway_payment_id",
-                "matched_bank_utr",
-                "match_type",
-                "confidence",
-                "matches_ground_truth",
-                "reasoning",
-            ]],
-            use_container_width=True,
+            df[display_cols] if not df.empty else pd.DataFrame(columns=display_cols),
+            width="stretch",
             hide_index=True,
             height=340,
         )
@@ -239,7 +274,7 @@ with tab_live_ollama:
     st.subheader("🧪 Test Live Ollama Cloud (`gemma4` / `qwen3.1`) on Any Unmatched Row")
     st.write(
         "Instead of waiting for all 33 unmatched rows over the network during a live presentation, "
-        "pick any single unmatched transaction below and click **Ask Ollama Live** to watch the real LLM reason in 2 seconds."
+        "pick any single unmatched transaction below and click **Ask Ollama Live Now** to watch the real LLM reason in ~2 seconds."
     )
 
     ledger = load_ledger(DATA_DIR / "internal_ledger.csv")
@@ -248,10 +283,13 @@ with tab_live_ollama:
     _, unmatched_rows = DeterministicMatcher().match(ledger, bank, gateway)
 
     unmatched_options = {
-        f"{r.txn_id} | Order: {r.order_id} | Amount: ₹{r.amount} | Date: {r.timestamp[:10]}": r
+        f"{r.txn_id} | Order: {r.order_id} | Amount: ₹{r.amount} | Date: {r.timestamp.strftime('%Y-%m-%d')}": r
         for r in unmatched_rows
     }
-    selected_label = st.selectbox("Choose an Unmatched Ledger Row (from the 33 rows Rules couldn't solve):", list(unmatched_options.keys()))
+    selected_label = st.selectbox(
+        "Choose an Unmatched Ledger Row (from the 33 rows Rules couldn't solve):",
+        list(unmatched_options.keys()),
+    )
     selected_row = unmatched_options[selected_label]
 
     if st.button("⚡ Ask Ollama Live Now", type="primary"):
@@ -280,11 +318,16 @@ with tab_live_ollama:
             })
         with c_right:
             st.markdown("#### 2. Natural-Language Reasoning")
-            st.info(result.reasoning)
+            st.info(result.reasoning or "No reasoning returned.")
             if result.match_type == "llm":
-                st.success(f"PASSED Code Gate ({result.confidence:.2f} ≥ {confidence_threshold:.2f}) → Committed as Match `{result.matched_bank_utr}`")
+                st.success(
+                    f"PASSED Code Gate ({result.confidence:.2f} ≥ {confidence_threshold:.2f}) "
+                    f"→ Committed as Match `{result.matched_bank_utr}`"
+                )
             else:
-                st.warning(f"BLOCKED by Code Gate → Routed to Human Exception Queue (`{result.exception_category}`)")
+                st.warning(
+                    f"BLOCKED by Code Gate → Routed to Human Exception Queue (`{result.exception_category}`)"
+                )
 
 with tab_explain:
     st.subheader("📖 How to Explain This Project in 60 Seconds")

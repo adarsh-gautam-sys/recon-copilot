@@ -499,7 +499,8 @@ class LLMEscalator:
         Parse and validate the LLM JSON response.
         Returns None on any parse or validation failure.
         """
-        # Strip markdown code fences if the model added them despite instructions
+        import re
+
         text = raw.strip()
         if text.startswith("```"):
             lines = text.splitlines()
@@ -510,10 +511,18 @@ class LLMEscalator:
         try:
             data = json.loads(text)
         except json.JSONDecodeError as exc:
-            logger.warning(
-                "Malformed JSON from LLM for %s: %s | raw=%r",
-                txn_id, exc, raw
-            )
+            match = re.search(r"\{.*\}", text, re.DOTALL)
+            if match:
+                try:
+                    data = json.loads(match.group(0))
+                except json.JSONDecodeError:
+                    logger.warning("Malformed JSON from LLM for %s: %s | raw=%r", txn_id, exc, raw)
+                    return None
+            else:
+                logger.warning("Malformed JSON from LLM for %s: %s | raw=%r", txn_id, exc, raw)
+                return None
+
+        if not isinstance(data, dict):
             return None
 
         # Validate required fields
@@ -543,6 +552,9 @@ class LLMEscalator:
                 txn_id, raw
             )
             return None
+
+        if isinstance(proposed, str) and proposed.strip().lower() in ("", "null", "none", "(none)", "(blank)"):
+            proposed = None
 
         return LLMResponse(
             proposed_match=proposed or None,
