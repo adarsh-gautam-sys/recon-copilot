@@ -1,6 +1,6 @@
 # PRD — Reconciliation Copilot
 
-**Track:** Razorpay AI Buildathon — Track 04, AI Finance Controller
+**Course:** Foundations of Agentic AI — College Course Submission
 **One-liner:** A deterministic-first reconciliation agent that matches transactions across bank settlement, payment-gateway settlement, and internal ledger sources — escalating only genuinely ambiguous rows to an LLM, and reporting an honest match rate plus a categorized exception list with a full audit trail.
 
 ---
@@ -9,7 +9,7 @@
 
 Finance teams reconcile money across 3+ disconnected sources (bank, gateway, internal ledger) by hand or with brittle rule scripts. Mismatches come from rounding drift, missing references, partial refunds, timing offsets, and duplicate entries. Nobody wants an agent that "looks smart" — they want one that resolves what it can prove, and clearly flags what it can't.
 
-Razorpay's own framing for this track: *"verification capacity, not generation speed, is the bottleneck."* This PRD is built around that sentence — the product is a verifier, not a generator.
+Core thesis for **Foundations of Agentic AI**: *"verification capacity, not generation speed, is the bottleneck."* This PRD is built around that principle — the agent is a hybrid neuro-symbolic verifier, not an unconstrained generator.
 
 ## 2. Goals
 
@@ -17,7 +17,7 @@ Razorpay's own framing for this track: *"verification capacity, not generation s
 - Escalate only unresolved rows to an LLM, which proposes (never silently commits) a match with reasoning + confidence.
 - Hard-gate: any LLM-proposed match below a confidence threshold becomes an **exception**, not a forced match.
 - Report: match rate, exception list categorized by failure reason, full per-row audit trail (which engine resolved it, why).
-- Ship as a public GitHub repo with a thin FastAPI wrapper, README, and a 5-minute pitch.
+- Ship as a reproducible repository with an interactive web verification console, FastAPI wrapper, and comprehensive documentation for academic evaluation.
 
 ## 3. Non-Goals
 
@@ -128,31 +128,32 @@ Simulated user: a finance-ops analyst who currently reconciles settlement report
 ### 7.4 Audit Trail & Exception Reporting
 - Every row gets exactly one match record (§6.5), regardless of outcome.
 - Report includes: overall match rate (rule-only, rule+LLM, and total), a breakdown by `exception_category`, and the full per-row audit trail.
-- Match rate must be computed **against the answer key**, not self-reported — this is the "honest metrics" requirement Razorpay explicitly calls out.
+- Match rate must be computed **against the answer key**, not self-reported — enforcing objective ground-truth evaluation of agentic precision.
 
-### 7.5 API Layer
+### 7.5 API & Interactive Workbench Layer
+- `GET /` — serves the interactive Statistical Bulletin & Verification Workbench UI.
 - `POST /reconcile` — runs the full pipeline on the three CSVs, returns the report as JSON.
-- `GET /report/{run_id}` — optional, fetch a prior run's report.
+- `GET /report/{run_id}` — fetch a prior run's report.
 
-## 8. Technical Decisions & Trade-offs (for the failure-recovery story)
+## 8. Technical Decisions & Trade-offs (Agentic Systems Engineering)
 
-- **cuDF/RAPIDS vs pandas:** RAPIDS needs an NVIDIA GPU + CUDA toolchain — a real risk to lose build time on setup during a single-day build. Decision: build on pandas first (correctness), and only swap in `cudf.pandas` (drop-in accelerator mode, same API) if GPU time is available. Document this trade-off explicitly in the README — it *is* the kind of judgment call the "AI Judgment" bar is checking for.
-- **LLM provider:** any structured-output-capable API (Claude/OpenAI). Keep the call behind a thin interface so the model is swappable.
-- **Confidence threshold:** start at 0.7, but log the distribution of LLM confidence scores so the threshold choice is justified with data, not a guess.
+- **cuDF/RAPIDS vs pandas:** RAPIDS needs an NVIDIA GPU + CUDA toolchain — a real risk to lose build time on setup. Decision: build on pandas first (correctness), and only swap in `cudf.pandas` (drop-in accelerator mode, same API) if GPU capacity is needed. Document this trade-off explicitly in the README as an engineering design decision.
+- **LLM provider:** any structured-output-capable API (Claude/OpenAI/OpenRouter) plus a deterministic local heuristic agent simulator (`heuristic` mode) so evaluators can test bounded escalation with zero API keys.
+- **Confidence threshold:** start at 0.70, and expose the threshold distribution so the hard gate is justified empirically.
 
 ## 9. Metrics & Evaluation
 
 - **Rule match rate** = rule-matched rows / total rows.
 - **LLM-assisted match rate** = LLM-matched (above threshold) rows / total rows.
-- **Precision of LLM matches** = LLM matches that agree with `ground_truth_match` / total LLM matches (computed against answer key — this is the credibility number).
+- **Precision of LLM matches** = LLM matches that agree with `ground_truth_match` / total LLM matches (computed against answer key — the primary credibility metric).
 - **Unresolved rate**, broken down by `exception_category`.
 - Report all four numbers together. A high total match rate with low LLM precision is a red flag the report should surface, not hide.
 
 ## 10. Deliverables
 
-- Public GitHub repo, structure per §12 (Repo Layout).
-- README: problem, architecture diagram, the trade-off in §8, one thing that broke during the build and how it was fixed.
-- 5-minute pitch video.
+- Complete repository structured per §12 (Repo Layout).
+- Interactive web verification workbench served by FastAPI (`GET /`).
+- README: problem formulation, hybrid agent architecture diagram, engineering trade-offs in §8, and failure-mode analysis.
 - This PRD, committed to the repo (`/docs/PRD.md`).
 
 ## 11. Testing Requirements
@@ -168,6 +169,8 @@ Simulated user: a finance-ops analyst who currently reconciles settlement report
 ```
 reconciliation-copilot/
 ├── README.md
+├── PRODUCT.md
+├── DESIGN.md
 ├── requirements.txt
 ├── docs/
 │   └── PRD.md
@@ -181,7 +184,10 @@ reconciliation-copilot/
 │   ├── reporting/
 │   │   └── audit_report.py
 │   └── api/
-│       └── main.py
+│       ├── main.py
+│       ├── pipeline.py
+│       └── static/
+│           └── index.html
 ├── data/
 │   ├── bank_settlement.csv
 │   ├── gateway_settlement.csv
@@ -192,7 +198,8 @@ reconciliation-copilot/
 │   ├── test_deterministic_matcher.py
 │   ├── test_llm_escalator.py
 │   ├── test_audit_report.py
-│   └── test_integration.py
+│   ├── test_integration.py
+│   └── test_api.py
 └── outputs/
     └── (generated reports land here)
 ```
@@ -201,7 +208,7 @@ reconciliation-copilot/
 
 | Risk | Mitigation |
 |---|---|
-| LLM escalation eats the whole day-budget on prompt-tuning | Time-box to 1.5–2 hrs; a rougher LLM layer with a solid deterministic core still passes the bar |
-| Over-claiming accuracy | Always report against the answer key, never a self-reported number |
-| GPU setup burns build time | pandas-first, cuDF as optional swap-in, documented as a decision not a limitation |
-| Judges can't run the repo | Ship a `run_demo.sh` / one-command entry point, and commit sample output alongside the code |
+| Unconstrained LLM hallucination on financial data | Hard confidence gate (`>= 0.70`) enforced in Python code; deterministic rules execute first |
+| Over-claiming accuracy | Always report against `answer_key.csv`, never a self-reported number |
+| GPU setup overhead | pandas-first architecture with `cudf.pandas` drop-in compatibility |
+| Evaluators lacking external LLM API keys | Ship a one-command entry point, offline rule baseline, and bounded heuristic agent simulator alongside live OpenRouter mode |

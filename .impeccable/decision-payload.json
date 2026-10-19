@@ -1,0 +1,236 @@
+{
+  "title": "Choose the visual world for Reconciliation Copilot",
+  "question": "The roll assigned Central Bank Statistical Bulletin. Keep it, pick an alternate, or re-roll.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Central Bank Statistical Bulletin",
+      "kicker": "THE ROLL",
+      "lineage": "Bundesbank & RBI Monetary Statistical Yearbooks",
+      "thesis": "A stark typographic publication where every verification claim is proved inline by exposed three-leg settlement tables.",
+      "palette": [
+        "#FBFBF9",
+        "#111315",
+        "#046A38",
+        "#D9381E"
+      ],
+      "materials": [
+        "2px carbon section rules",
+        "tabular numeral ledger grid",
+        "uncoated alabaster sheet"
+      ],
+      "viewport": "Masthead thesis bar with live batch controls, four double-ruled verification counters, and an exposed three-leg exception ledger.",
+      "risk": "Feels austere if hierarchy relies on rules without sharp status contrast.",
+      "raised": [
+        {
+          "from": "challenger-orienteering",
+          "raise": "Ground-truth answer-key noise terrain stays visible beneath every row so false LLM matches surface immediately."
+        },
+        {
+          "from": "challenger-saville",
+          "raise": "Every batch and transaction carries a canonical reference code with a 7-hue noise-category strip decoded inline."
+        },
+        {
+          "from": "challenger-character-catalog",
+          "raise": "All seven synthetic noise categories sit in a fixed ranked roster with exact survival and exception counts."
+        }
+      ],
+      "comp": ".impeccable/mocks/decision/assigned.png"
+    },
+    {
+      "id": "model-pick",
+      "label": "Chartered Accountant Trial Balance",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "Indian Chartered Accountant trial balance sheets & stamped voucher books",
+      "thesis": "A ruled cotton-paper trial balance where deterministic matches post in cobalt ink and gated exceptions get vermilion stamps.",
+      "palette": [
+        "#F6F3EC",
+        "#182232",
+        "#1D4ED8",
+        "#C81E1E"
+      ],
+      "materials": [
+        "cotton ledger paper",
+        "double-ruled balance totals",
+        "vermilion exception stamps"
+      ],
+      "viewport": "Ruled voucher header with batch runner, four balanced T-account summary columns, and a red-ink exception docket queue.",
+      "risk": "Also the familiar accounting-ledger territory most financial audit tools land on.",
+      "comp": ".impeccable/mocks/decision/model-pick.png"
+    },
+    {
+      "id": "challenger-boarding-gate",
+      "label": "Voucher Pass & Live Gate Board",
+      "verdict": "competitive",
+      "lineage": "Segmented travel boarding passes & live departure gate boards",
+      "thesis": "Pairs a three-stub transaction pass (Ledger | Gateway | Bank) with a live board that reranks and latches exceptions in place.",
+      "palette": [
+        "#0F141A",
+        "#F4F6F8",
+        "#F59E0B",
+        "#EF4444"
+      ],
+      "materials": [
+        "perforated stub segments",
+        "high-contrast split flap rows",
+        "amber/red latch badges"
+      ],
+      "viewport": "Pinned 3-stub transaction inspector at top above a live-reranking settlement board holding escalated and gated rows lit.",
+      "case": "Fuses cleanly: the three settlement sources map directly to a three-segment pass while unresolved rows hold their alert latch.",
+      "risk": "Can read like transit ops if INR currency and UTR typography are not foregrounded.",
+      "comp": ".impeccable/mocks/decision/challenger-boarding-gate.png",
+      "hero": "https://impeccable.style/worlds/cards/vernacular-ephemera-boarding-pass-and-gate-board-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/vernacular-ephemera-boarding-pass-and-gate-board.webp"
+    },
+    {
+      "id": "challenger-monochrome-proof",
+      "label": "Monochrome Claim & Live Proof",
+      "verdict": "competitive",
+      "lineage": "Monochrome software verification canon",
+      "thesis": "Near-black on near-white with a single signal accent reserved strictly for the 0.70 confidence gate, pairing each claim with live proof.",
+      "palette": [
+        "#FAFAFA",
+        "#0A0A0B",
+        "#52525B",
+        "#E11D48"
+      ],
+      "materials": [
+        "fine neutral scale",
+        "1px hairline frames",
+        "single signal-crimson gate accent"
+      ],
+      "viewport": "Two-column claim-and-proof header where the verification thesis sits beside the live batch trigger and gated exception table.",
+      "case": "Excels for academic evaluators: every architectural assertion is immediately paired with the live verification artifact proving it.",
+      "risk": "Single-accent restraint requires razor-sharp typographic contrast to distinguish deterministic vs. LLM rows.",
+      "comp": ".impeccable/mocks/decision/challenger-monochrome-proof.png",
+      "hero": "https://impeccable.style/worlds/cards/digital-design-canon-monochrome-product-marketing-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/digital-design-canon-monochrome-product-marketing.webp"
+    },
+    {
+      "id": "challenger-axis-specimen",
+      "label": "Live Confidence Axis Specimen",
+      "verdict": "competitive",
+      "lineage": "Interactive variable-axis typographic specimens",
+      "thesis": "A giant live 0.70 confidence gate slider and tolerance ruler that re-partitions the 300-row settlement grid in real time as you drag.",
+      "palette": [
+        "#F7F6F2",
+        "#121212",
+        "#2563EB",
+        "#EA580C"
+      ],
+      "materials": [
+        "oversized numeral specimen readout",
+        "continuous axis scrubbers",
+        "exposed coordinate baseline grid"
+      ],
+      "viewport": "Enormous live verified-match readout and interactive 0.70 confidence gate scrubber above a 300-cell transaction matrix.",
+      "case": "Turns the hard confidence gate from a backend config constant into a tactile, inspectable physical instrument.",
+      "risk": "The axis scrubber must clearly separate read-only audit truth from interactive threshold simulation.",
+      "comp": ".impeccable/mocks/decision/challenger-axis-specimen.png",
+      "hero": "https://impeccable.style/worlds/cards/variable-font-specimen-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/variable-font-specimen.webp"
+    },
+    {
+      "id": "challenger-orienteering",
+      "label": "ISO Orienteering Contour Map",
+      "verdict": "declined",
+      "lineage": "ISOM orienteering course maps & control tables",
+      "thesis": "Fixed ground-truth noise contours beneath a purple verification course trace connecting each transaction control point.",
+      "palette": [
+        "#FFFFFF",
+        "#C8963E",
+        "#7C3AED",
+        "#2563EB"
+      ],
+      "materials": [
+        "contour line ground",
+        "purple course overlay",
+        "coded control description table"
+      ],
+      "viewport": "Fixed noise-terrain map with a numbered verification route overlay and coded control punch table.",
+      "case": "Fuses poorly: topographic forest contours obscure dense tabular INR settlement figures.",
+      "risk": "Spatial map metaphors slow down rapid row-by-row accounting inspection.",
+      "kept": "Ground-truth answer-key noise terrain stays locked beneath live reconciliation results.",
+      "hero": "https://impeccable.style/worlds/cards/notation-diagram-systems-orienteering-map-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/notation-diagram-systems-orienteering-map.webp"
+    },
+    {
+      "id": "challenger-saville",
+      "label": "Factory Catalog Coded Index",
+      "verdict": "declined",
+      "lineage": "Factory Records FAC catalog & colour-coded sleeves",
+      "thesis": "Matte-black catalog index where every batch and row is addressed by FAC serial number and a 7-color noise-code bar.",
+      "palette": [
+        "#0B0B0C",
+        "#F4F4F6",
+        "#10B981",
+        "#F43F5E"
+      ],
+      "materials": [
+        "matte black ground",
+        "white hairline waveform",
+        "7-hue coded noise strip"
+      ],
+      "viewport": "Serial-numbered batch header with a stacked variance plot and colour-coded transaction index.",
+      "case": "Fuses poorly: replacing plain-English failure reasons with colour codes slows down finance controllers.",
+      "risk": "Cryptic encoding works against immediate audit transparency.",
+      "kept": "Canonical reference serials and a compact 7-hue noise-category strip decoded inline.",
+      "hero": "https://impeccable.style/worlds/cards/brand-identity-canon-saville-catalog-sleeve-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/brand-identity-canon-saville-catalog-sleeve.webp"
+    },
+    {
+      "id": "challenger-character-catalog",
+      "label": "Ranked Exception Archetype Roster",
+      "verdict": "declined",
+      "lineage": "Ranked character goods catalog grids",
+      "thesis": "A finite ranked roster of the seven synthetic noise archetypes, each with its own badge, survival rate, and failure note.",
+      "palette": [
+        "#FFFDF9",
+        "#1E293B",
+        "#38BDF8",
+        "#FB7185"
+      ],
+      "materials": [
+        "white keyline cells",
+        "flat category ribbons",
+        "ranked popularity grid"
+      ],
+      "viewport": "Seven ranked noise-archetype cards above a filtered transaction roster.",
+      "case": "Fuses poorly: playful mascot-catalog conventions undercut institutional financial trust.",
+      "risk": "Reads too lighthearted for an audit controller workbench.",
+      "kept": "A finite ranked 7-card noise-category roster where each failure type keeps fixed summary furniture.",
+      "hero": "https://impeccable.style/worlds/cards/pop-culture-shelf-character-goods-catalog-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/pop-culture-shelf-character-goods-catalog.webp"
+    }
+  ],
+  "reroll": {
+    "registers": [
+      "safer",
+      "bolder"
+    ]
+  },
+  "buildPath": {
+    "value": "comp",
+    "toggle": true
+  },
+  "canon": true,
+  "canonCard": {
+    "label": "The category standard",
+    "thesis": "Modern SaaS fintech dashboard with clean slate cards, emerald/amber/red status pills, and a tabbed transaction table.",
+    "palette": [
+      "#F8FAFC",
+      "#0F172A",
+      "#2563EB",
+      "#10B981"
+    ],
+    "materials": [
+      "clean 1px slate cards",
+      "semantic status pills",
+      "sticky data table"
+    ],
+    "viewport": "Top navbar, 4-metric KPI row, noise breakdown bar, and a filterable reconciliation table.",
+    "risk": "Indistinguishable from standard fintech admin templates by design.",
+    "comp": ".impeccable/mocks/decision/canon.png"
+  },
+  "steer": true
+}

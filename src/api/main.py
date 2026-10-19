@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from src.api.pipeline import PipelineRequest, run_pipeline
@@ -36,13 +36,14 @@ from src.api.pipeline import PipelineRequest, run_pipeline
 
 DATA_DIR    = Path(os.environ.get("DATA_DIR",    "data"))
 OUTPUTS_DIR = Path(os.environ.get("OUTPUTS_DIR", "outputs"))
+STATIC_DIR  = Path(__file__).resolve().parent / "static"
 
 # ---------------------------------------------------------------------------
 # FastAPI app
 # ---------------------------------------------------------------------------
 
 app = FastAPI(
-    title="Reconciliation Copilot",
+    title="Reconciliation Copilot — Foundations of Agentic AI",
     description=(
         "A deterministic-first reconciliation agent that matches transactions "
         "across bank settlement, payment-gateway settlement, and internal ledger "
@@ -72,7 +73,13 @@ class ReconcileRequest(BaseModel):
     )
     llm_mode: str = Field(
         "offline",
-        description="'offline' (no API calls) or 'openrouter' (live LLM via OpenRouter)."
+        description="'offline' (rule baseline), 'heuristic' (bounded agent simulator), or 'openrouter' (live LLM)."
+    )
+    confidence_threshold: float = Field(
+        0.70,
+        ge=0.0,
+        le=1.0,
+        description="Code-enforced confidence gate threshold for LLM proposals."
     )
     openrouter_api_key: Optional[str] = Field(
         None,
@@ -120,6 +127,12 @@ class ReconcileResponse(BaseModel):
 # Routes
 # ---------------------------------------------------------------------------
 
+@app.get("/", include_in_schema=False)
+def workbench() -> FileResponse:
+    """Serve the Central Bank Statistical Bulletin verification workbench UI."""
+    return FileResponse(STATIC_DIR / "index.html")
+
+
 @app.get("/health", response_model=HealthResponse, tags=["meta"])
 def health() -> HealthResponse:
     """Simple liveness probe — returns 200 if the service is up."""
@@ -133,7 +146,7 @@ def reconcile(body: ReconcileRequest) -> ReconcileResponse:
 
     1. Generate synthetic CSV data (or load existing ones).
     2. Apply the deterministic rule-based matcher.
-    3. Escalate unmatched rows to the LLM (or offline mock).
+    3. Escalate unmatched rows to the LLM (offline, heuristic simulator, or live OpenRouter).
     4. Generate audit report, save to outputs/, and return as JSON.
     """
     req = PipelineRequest(
@@ -141,6 +154,7 @@ def reconcile(body: ReconcileRequest) -> ReconcileResponse:
         seed=body.seed,
         use_existing_data=body.use_existing_data,
         llm_mode=body.llm_mode,
+        confidence_threshold=body.confidence_threshold,
         openrouter_api_key=body.openrouter_api_key,
         openrouter_model=body.openrouter_model,
         llm_delay_ms=body.llm_delay_ms,

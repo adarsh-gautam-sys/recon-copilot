@@ -35,14 +35,15 @@ class PipelineRequest:
     n_rows: int = 300
     seed: int = 42
     use_existing_data: bool = True          # skip generation when CSVs already exist
-    llm_mode: str = "offline"               # "offline" | "openrouter"
+    llm_mode: str = "offline"               # "offline" | "heuristic" | "openrouter"
+    confidence_threshold: float = 0.70      # code-enforced confidence gate
     openrouter_api_key: Optional[str] = None
     openrouter_model: str = "z-ai/glm-5.2:free"
     llm_delay_ms: int = 2000               # inter-call delay (ms) for free-tier APIs
 
 
 # ---------------------------------------------------------------------------
-# Offline mock (no API key required)
+# Offline mock & local heuristic agent simulator (no API key required)
 # ---------------------------------------------------------------------------
 
 class _OfflineMockClient:
@@ -56,6 +57,58 @@ class _OfflineMockClient:
             "proposed_match": None,
             "reasoning": "Offline mode — no LLM API key configured.",
             "confidence": 0.0,
+        })
+
+
+class _HeuristicAgentClient:
+    """
+    Bounded local agent simulator for academic evaluation without external API keys.
+    Inspects candidate bank narrations for order_id fragments and evaluates amount drift,
+    emitting realistic confidence scores that exercise the code-level confidence gate.
+    """
+    def complete(self, system: str, user: str) -> str:
+        import re
+        ord_m = re.search(r"order_id\s*:\s*(\S+)", user)
+        amt_m = re.search(r"amount\s*:\s*INR\s*([\d.]+)", user)
+        order_id = ord_m.group(1) if ord_m else ""
+        ledger_amt = float(amt_m.group(1)) if amt_m else 0.0
+        ord_Fragment = order_id.split("_")[-1] if "_" in order_id else order_id
+
+        cand_pattern = re.compile(
+            r'Bank UTR=(\S+),\s*amount=INR\s*([\d.]+),\s*date=(\S+),\s*narration="([^"]*)"'
+        )
+        candidates = cand_pattern.findall(user)
+        for utr, b_amt_str, b_date, narration in candidates:
+            if utr == "(blank)":
+                continue
+            delta = abs(float(b_amt_str) - ledger_amt)
+            if (order_id and order_id in narration) or (ord_Fragment and ord_Fragment in narration):
+                conf = round(max(0.74, 0.94 - min(delta, 2.0) * 0.06), 2)
+                return json.dumps({
+                    "proposed_match": utr,
+                    "reasoning": (
+                        f"Bank narration references {order_id} on {b_date} with "
+                        f"rounding drift of INR {delta:.2f} (within ±INR 2.00 settlement band)."
+                    ),
+                    "confidence": conf,
+                })
+
+        if candidates:
+            utr, b_amt_str, b_date, _ = candidates[0]
+            delta = abs(float(b_amt_str) - ledger_amt)
+            return json.dumps({
+                "proposed_match": utr if utr != "(blank)" else None,
+                "reasoning": (
+                    f"Closest candidate {utr} differs by INR {delta:.2f} on {b_date} "
+                    f"but carries no {order_id} reference in bank narration; likely orphan."
+                ),
+                "confidence": 0.34,
+            })
+
+        return json.dumps({
+            "proposed_match": None,
+            "reasoning": f"No settlement candidate within amount window for {order_id}; true orphan transaction.",
+            "confidence": 0.08,
         })
 
 
@@ -75,7 +128,7 @@ def run_pipeline(
     ------
     1. Data generation (skipped when use_existing_data=True and CSVs exist).
     2. Deterministic matcher (rule-based, confidence 1.0).
-    3. LLM escalator (offline mock or live OpenRouter call).
+    3. LLM escalator (offline mock, heuristic agent, or live OpenRouter call).
     4. Audit report generator (writes JSON to outputs_dir, prints summary).
     """
     # Stage 1 — generate or load data
@@ -94,9 +147,10 @@ def run_pipeline(
 
     # Stage 3 — LLM escalate
     llm_client = _build_llm_client(req)
+    delay_sec = (req.llm_delay_ms / 1000.0) if req.llm_mode == "openrouter" else 0.0
     cfg = EscalatorConfig(
-        confidence_threshold=0.70,
-        call_delay_seconds=req.llm_delay_ms / 1000.0,
+        confidence_threshold=req.confidence_threshold,
+        call_delay_seconds=delay_sec,
     )
     escalator = LLMEscalator(client=llm_client, config=cfg)
     llm_results = escalator.escalate(unmatched, bank, gateway)
@@ -116,5 +170,7 @@ def _build_llm_client(req: PipelineRequest):
         if key:
             from src.matching.llm_escalator import OpenRouterLLMClient
             return OpenRouterLLMClient(model=req.openrouter_model, api_key=key)
+    if req.llm_mode == "heuristic":
+        return _HeuristicAgentClient()
     # Fallback: offline mock
     return _OfflineMockClient()

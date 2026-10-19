@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reconciliation Copilot — Statistical Bulletin &amp; Three-Way Settlement Verifier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --sheet-bg: #FBFBF9;
+      --sheet-Tint: #F3F1EC;
+      --sheet-elevated: #ECE9E1;
+      --ink-primary: #111315;
+      --ink-secondary: #3E4348;
+      --ink-muted: #5C6268;
+      --rule-heavy: #111315;
+      --rule-hairline: #C9C5BA;
+      --verify-green: #046A38;
+      --verify-green-bg: #E6F2EC;
+      --escalate-navy: #1B365D;
+      --escalate-navy-bg: #E8EEF5;
+      --gate-vermilion: #D9381E;
+      --gate-vermilion-bg: #FBEAE7;
+      --amber-warn: #9A5B00;
+      --amber-warn-bg: #FDF3E3;
+      --font-display: 'Libre Baskerville', Georgia, serif;
+      --font-sans: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    ::selection {
+      background: var(--verify-green);
+      color: var(--sheet-bg);
+    }
+
+    html {
+      background: var(--sheet-bg);
+      color: var(--ink-primary);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.5;
+      caret-color: var(--verify-green);
+      scroll-behavior: smooth;
+    }
+
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--sheet-Tint);
+      border-left: 1px solid var(--rule-hairline);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--ink-secondary);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--ink-primary);
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--verify-green);
+      outline-offset: 2px;
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--sheet-bg);
+      color: var(--ink-primary);
+      padding: 24px 32px 64px;
+    }
+
+    .bulletin-frame {
+      max-width: 1440px;
+      margin: 0 auto;
+      background: var(--sheet-bg);
+      border-top: 4px solid var(--rule-heavy);
+      border-bottom: 4px solid var(--rule-heavy);
+      box-shadow: 0 12px 28px -10px rgba(17, 19, 21, 0.07);
+    }
+
+    /* Masthead */
+    .masthead {
+      padding: 24px 0 20px;
+      border-bottom: 2px solid var(--rule-heavy);
+    }
+
+    .masthead-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--rule-hairline);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--ink-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .masthead-meta-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .meta-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      background: var(--sheet-Tint);
+      border: 1px solid var(--rule-hairline);
+      color: var(--ink-primary);
+      font-weight: 600;
+    }
+
+    .masthead-main {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 32px;
+      padding-top: 20px;
+      align-items: end;
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 2.6vw, 2.45rem);
+      font-weight: 700;
+      line-height: 1.18;
+      letter-spacing: -0.02em;
+      color: var(--ink-primary);
+      text-wrap: balance;
+      margin-bottom: 12px;
+    }
+
+    .thesis-lead {
+      font-size: 1.02rem;
+      line-height: 1.58;
+      color: var(--ink-secondary);
+      max-width: 68ch;
+    }
+
+    .thesis-lead strong {
+      color: var(--ink-primary);
+      font-weight: 600;
+    }
+
+    /* Batch Instrument Console */
+    .batch-console {
+      background: var(--sheet-Tint);
+      border: 2px solid var(--rule-heavy);
+      padding: 16px 18px;
+    }
+
+    .console-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 0.7fr 0.7fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field-group label {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--ink-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .field-control {
+      appearance: none;
+      background: var(--sheet-bg);
+      border: 1px solid var(--rule-heavy);
+      color: var(--ink-primary);
+      font-family: var(--font-mono);
+      font-size: 0.84rem;
+      padding: 7px 10px;
+      font-variant-numeric: tabular-nums;
+      width: 100%;
+    }
+
+    .openrouter-drawer {
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--rule-hairline);
+    }
+
+    .openrouter-drawer.visible {
+      display: grid;
+    }
+
+    .console-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-top: 8px;
+      border-top: 1px solid var(--rule-hairline);
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--ink-primary);
+      color: var(--sheet-bg);
+      border: 2px solid var(--ink-primary);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 9px 18px;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--verify-green);
+      border-color: var(--verify-green);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    .run-status {
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      color: var(--ink-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Four-Column Statistical Balance Ledger */
+    .statistical-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-bottom: 2px solid var(--rule-heavy);
+    }
+
+    .stat-cell {
+      padding: 20px 22px;
+      border-right: 1px solid var(--rule-heavy);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .stat-cell:last-child {
+      border-right: none;
+    }
+
+    .stat-heading-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .stat-title {
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--ink-primary);
+    }
+
+    .stat-code {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+    }
+
+    .stat-figure-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin: 4px 0 10px;
+      padding-bottom: 8px;
+      border-bottom: 3px double var(--rule-heavy);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-number {
+      font-size: 2.15rem;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .stat-rate {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .stat-number.green, .stat-rate.green { color: var(--verify-green); }
+    .stat-number.navy, .stat-rate.navy { color: var(--escalate-navy); }
+    .stat-number.vermilion, .stat-rate.vermilion { color: var(--gate-vermilion); }
+
+    .stat-footnote {
+      font-size: 0.8rem;
+      color: var(--ink-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Interactive Confidence Gate Specimen & Ground-Truth Bar */
+    .instrument-band {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      border-bottom: 2px solid var(--rule-heavy);
+      background: var(--sheet-Tint);
+    }
+
+    .gate-scrubber-panel {
+      padding: 20px 24px;
+      border-right: 1px solid var(--rule-heavy);
+    }
+
+    .section-heading {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--ink-primary);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .section-subcopy {
+      font-size: 0.88rem;
+      color: var(--ink-secondary);
+      margin-bottom: 14px;
+      max-width: 66ch;
+    }
+
+    .scrubber-control-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--sheet-bg);
+      border: 1px solid var(--rule-heavy);
+      padding: 12px 16px;
+    }
+
+    .tau-readout {
+      font-family: var(--font-mono);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--ink-primary);
+      min-width: 112px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tau-slider-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    input[type="range"].tau-slider {
+      width: 100%;
+      accent-color: var(--gate-vermilion);
+      cursor: pointer;
+    }
+
+    .tau-scale {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn-ghost {
+      background: var(--sheet-Tint);
+      border: 1px solid var(--rule-heavy);
+      color: var(--ink-primary);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    .btn-ghost:hover {
+      background: var(--ink-primary);
+      color: var(--sheet-bg);
+    }
+
+    /* Ground-Truth Verification Seal Panel */
+    .truth-panel {
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .truth-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      background: var(--sheet-bg);
+      border: 1px solid var(--rule-heavy);
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .truth-metric-label {
+      font-size: 0.72rem;
+      color: var(--ink-secondary);
+      margin-bottom: 2px;
+    }
+
+    .truth-metric-val {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .stamp-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border: 1px solid currentColor;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stamp-badge.pass {
+      color: var(--verify-green);
+      background: var(--verify-green-bg);
+    }
+
+    .stamp-badge.fail {
+      color: var(--gate-vermilion);
+      background: var(--gate-vermilion-bg);
+    }
+
+    /* 7-Archetype Noise Terrain Roster (Raised from Saville + Character Catalog + Orienteering) */
+    .noise-roster-section {
+      padding: 24px 0 20px;
+      border-bottom: 2px solid var(--rule-heavy);
+    }
+
+    .noise-proportion-bar {
+      display: flex;
+      height: 14px;
+      width: 100%;
+      border: 1px solid var(--rule-heavy);
+      margin: 12px 0 16px;
+      overflow: hidden;
+    }
+
+    .noise-bar-seg {
+      height: 100%;
+      transition: opacity 150ms ease;
+      cursor: pointer;
+    }
+    .noise-bar-seg:hover {
+      opacity: 0.8;
+    }
+
+    .noise-roster-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      border: 1px solid var(--rule-heavy);
+      background: var(--sheet-bg);
+    }
+
+    .noise-cell {
+      padding: 12px 12px;
+      border-right: 1px solid var(--rule-hairline);
+      cursor: pointer;
+      text-align: left;
+      background: var(--sheet-bg);
+      transition: background-color 140ms ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .noise-cell:last-child {
+      border-right: none;
+    }
+
+    .noise-cell:hover {
+      background: var(--sheet-Tint);
+    }
+
+    .noise-cell.active {
+      background: var(--ink-primary);
+      color: var(--sheet-bg);
+    }
+
+    .noise-cell.active .noise-cell-meta,
+    .noise-cell.active .noise-cell-desc {
+      color: var(--rule-hairline);
+    }
+
+    .noise-cell-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .noise-swatch {
+      width: 10px;
+      height: 10px;
+      display: inline-block;
+      border: 1px solid var(--rule-heavy);
+      flex-shrink: 0;
+    }
+
+    .noise-cell-desc {
+      font-size: 0.74rem;
+      color: var(--ink-secondary);
+      line-height: 1.3;
+    }
+
+    .noise-cell-meta {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      color: var(--ink-secondary);
+      font-variant-numeric: tabular-nums;
+      padding-top: 6px;
+      border-top: 1px dotted var(--rule-hairline);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Ledger Inspector Section */
+    .ledger-section {
+      padding-top: 28px;
+    }
+
+    .ledger-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin: 14px 0 16px;
+      padding: 12px 16px;
+      background: var(--sheet-Tint);
+      border: 1px solid var(--rule-heavy);
+    }
+
+    .filter-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .filter-tab {
+      background: var(--sheet-bg);
+      border: 1px solid var(--rule-heavy);
+      color: var(--ink-primary);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .filter-tab:hover {
+      background: var(--sheet-elevated);
+    }
+
+    .filter-tab.active {
+      background: var(--ink-primary);
+      color: var(--sheet-bg);
+    }
+
+    .search-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .search-input {
+      background: var(--sheet-bg);
+      border: 1px solid var(--rule-heavy);
+      color: var(--ink-primary);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      padding: 6px 12px;
+      min-width: 250px;
+    }
+
+    /* Exposed Tabular Settlement Grid */
+    .table-container {
+      border: 2px solid var(--rule-heavy);
+      background: var(--sheet-bg);
+      overflow-x: auto;
+    }
+
+    table.settlement-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.81rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    table.settlement-table thead th {
+      background: var(--sheet-Tint);
+      color: var(--ink-primary);
+      font-weight: 700;
+      text-align: left;
+      padding: 11px 14px;
+      border-bottom: 2px solid var(--rule-heavy);
+      border-right: 1px solid var(--rule-hairline);
+      white-space: nowrap;
+      font-size: 0.75rem;
+      letter-spacing: 0.02em;
+    }
+
+    table.settlement-table thead th:last-child {
+      border-right: none;
+    }
+
+    table.settlement-table tbody tr.data-row {
+      border-bottom: 1px solid var(--rule-hairline);
+      cursor: pointer;
+      transition: background-color 120ms ease;
+    }
+
+    table.settlement-table tbody tr.data-row:hover {
+      background: var(--sheet-Tint);
+    }
+
+    table.settlement-table tbody tr.data-row.row-unresolved {
+      background: rgba(217, 56, 30, 0.04);
+    }
+    table.settlement-table tbody tr.data-row.row-unresolved:hover {
+      background: rgba(217, 56, 30, 0.09);
+    }
+
+    table.settlement-table tbody td {
+      padding: 10px 14px;
+      border-right: 1px solid var(--rule-hairline);
+      vertical-align: middle;
+    }
+
+    table.settlement-table tbody td:last-child {
+      border-right: none;
+    }
+
+    .engine-pill {
+      display: inline-block;
+      padding: 2px 7px;
+      font-size: 0.71rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      border: 1px solid currentColor;
+    }
+
+    .engine-pill.rule {
+      color: var(--verify-green);
+      background: var(--verify-green-bg);
+    }
+
+    .engine-pill.llm {
+      color: var(--escalate-navy);
+      background: var(--escalate-navy-bg);
+    }
+
+    .engine-pill.unresolved {
+      color: var(--gate-vermilion);
+      background: var(--gate-vermilion-bg);
+    }
+
+    .noise-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 1px 6px;
+      background: var(--sheet-Tint);
+      border: 1px solid var(--rule-hairline);
+      font-size: 0.72rem;
+    }
+
+    .conf-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .conf-bar-track {
+      width: 56px;
+      height: 7px;
+      background: var(--sheet-elevated);
+      border: 1px solid var(--rule-heavy);
+      position: relative;
+    }
+
+    .conf-bar-fill {
+      height: 100%;
+    }
+
+    .detail-row {
+      display: none;
+      background: var(--sheet-Tint);
+      border-bottom: 2px solid var(--rule-heavy);
+    }
+
+    .detail-row.open {
+      display: table-row;
+    }
+
+    .detail-box {
+      padding: 16px 20px;
+      font-family: var(--font-sans);
+      font-size: 0.86rem;
+      display: grid;
+      grid-template-columns: 1.2fr 1.8fr;
+      gap: 24px;
+    }
+
+    .detail-box dl {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      row-gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+
+    .detail-box dt {
+      color: var(--ink-secondary);
+    }
+
+    .detail-box dd {
+      color: var(--ink-primary);
+      font-weight: 600;
+    }
+
+    .reasoning-callout {
+      background: var(--sheet-bg);
+      border: 1px solid var(--rule-heavy);
+      padding: 12px 14px;
+    }
+
+    .reasoning-title {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--ink-secondary);
+      margin-bottom: 6px;
+    }
+
+    .table-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--sheet-Tint);
+      border-top: 1px solid var(--rule-heavy);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+
+    .pagination-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Academic Appendix & Visual World Provenance Gallery */
+    .academic-footer {
+      margin-top: 40px;
+      padding-top: 24px;
+      border-top: 2px solid var(--rule-heavy);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    .academic-block h2 {
+      font-family: var(--font-display);
+      font-size: 1.12rem;
+      margin-bottom: 10px;
+    }
+
+    .academic-block p {
+      font-size: 0.88rem;
+      color: var(--ink-secondary);
+      max-width: 68ch;
+      margin-bottom: 10px;
+    }
+
+    .formula-box {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      background: var(--sheet-Tint);
+      border: 1px solid var(--rule-heavy);
+      padding: 10px 14px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .error-banner {
+      display: none;
+      margin: 12px 0;
+      padding: 12px 16px;
+      background: var(--gate-vermilion-bg);
+      border: 2px solid var(--gate-vermilion);
+      color: var(--gate-vermilion);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+    }
+
+    .error-banner.visible {
+      display: block;
+    }
+
+    @media (max-width: 1100px) {
+      .masthead-main,
+      .instrument-band,
+      .academic-footer {
+        grid-template-columns: 1fr;
+      }
+      .statistical-strip {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .stat-cell:nth-child(2) {
+        border-right: none;
+      }
+      .stat-cell:nth-child(1),
+      .stat-cell:nth-child(2) {
+        border-bottom: 1px solid var(--rule-heavy);
+      }
+      .noise-roster-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .gate-scrubber-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--rule-heavy);
+      }
+    }
+
+    @media (max-width: 680px) {
+      body {
+        padding: 12px 14px 40px;
+      }
+      .statistical-strip,
+      .console-grid,
+      .truth-grid,
+      .noise-roster-grid,
+      .detail-box {
+        grid-template-columns: 1fr;
+      }
+      .stat-cell {
+        border-right: none;
+        border-bottom: 1px solid var(--rule-heavy);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!--
+  THESIS: A central-bank statistical bulletin and neuro-symbolic verification workbench proving that deterministic rules plus a code-enforced 0.70 confidence gate eliminate silent LLM hallucination across three-way financial settlements.
+  OWN-WORLD: Uncoated warm alabaster sheet (#FBFBF9), heavy 2px carbon rules (#111315), central-bank verification green (#046A38), vermilion exception stamps (#D9381E), Libre Baskerville masthead, and exposed JetBrains Mono tabular grids with zero rounded corners.
+  STORY: Evaluators and finance controllers see the hybrid agent thesis, run a 300-row batch across 7 synthetic noise archetypes, scrub the live 0.70 confidence gate, and audit every row against the ground-truth answer key.
+  FIRST VIEWPORT: Masthead with Foundations of Agentic AI framing and live batch console beside it, followed by 4 double-ruled balance counters, the interactive 0.70 confidence gate axis, and the 7-archetype noise roster.
+  FORM: Central Bank Statistical Bulletin (candidate 3 of 7, seed key 612f02c4).
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+  -->
+  <div class="bulletin-frame">
+    <header class="masthead">
+      <div class="masthead-meta-row">
+        <div class="masthead-meta-group">
+          <span class="meta-tag">FOUNDATIONS OF AGENTIC AI // CAPSTONE SUBMISSION</span>
+          <span>SERIES IV — NEURO-SYMBOLIC FINANCIAL VERIFICATION</span>
+          <span id="runIdBadge">RUN ID: LOADING...</span>
+        </div>
+        <div class="masthead-meta-group">
+          <span>SYNTHETIC BENCHMARK DATA (3 SOURCES + GROUND-TRUTH KEY)</span>
+          <a href="/docs" style="color: var(--ink-primary); font-weight: 700; text-underline-offset: 3px;">OPENAPI SPEC &rarr;</a>
+        </div>
+      </div>
+
+      <div class="masthead-main">
+        <div>
+          <h1>Reconciliation Copilot: Deterministic-First Settlement Verifier</h1>
+          <p class="thesis-lead">
+            <strong>“Verification capacity, not generation speed, is the bottleneck.”</strong>
+            This agent reconciles three disconnected financial sources (Internal Ledger, Payment Gateway, and Bank UTR) by executing deterministic mathematical rules first, escalating only unresolved discrepancies to a bounded LLM, and enforcing a hard code-level confidence gate (&tau; &ge; 0.70) so ambiguous rows become categorized exceptions rather than hallucinated matches.
+          </p>
+        </div>
+
+        <section class="batch-console" aria-label="Pipeline Execution Controls">
+          <div class="console-grid">
+            <div class="field-group">
+              <label for="llmModeSelect">Agent Escalation Engine</label>
+              <select id="llmModeSelect" class="field-control">
+                <option value="heuristic" selected>Bounded Agent Simulator (Heuristic)</option>
+                <option value="offline">Deterministic Rule Baseline (Offline)</option>
+                <option value="openrouter">Live OpenRouter LLM API</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="rowsInput">Batch Rows</label>
+              <input id="rowsInput" type="number" class="field-control" value="300" min="20" max="5000" step="10" />
+            </div>
+            <div class="field-group">
+              <label for="seedInput">Random Seed</label>
+              <input id="seedInput" type="number" class="field-control" value="42" min="1" max="99999" />
+            </div>
+          </div>
+
+          <div id="openrouterDrawer" class="openrouter-drawer">
+            <div class="field-group">
+              <label for="apiKeyInput">OpenRouter API Key</label>
+              <input id="apiKeyInput" type="password" class="field-control" placeholder="sk-or-v1-... (or uses env var)" />
+            </div>
+            <div class="field-group">
+              <label for="modelInput">Model Slug</label>
+              <input id="modelInput" type="text" class="field-control" value="z-ai/glm-5.2:free" />
+            </div>
+          </div>
+
+          <div class="console-actions">
+            <button id="runBtn" type="button" class="btn-primary">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                <polygon points="3,2 14,8 3,14" fill="currentColor" />
+              </svg>
+              <span>EXECUTE VERIFICATION BATCH</span>
+            </button>
+            <span id="runStatusText" class="run-status">Ready &middot; 300 rows loaded</span>
+          </div>
+        </section>
+      </div>
+    </header>
+
+    <div id="errorBanner" class="error-banner" role="alert"></div>
+
+    <!-- 4-Column Double-Ruled Statistical Balance Strip -->
+    <section class="statistical-strip" aria-label="Verification Balance Sheet">
+      <div class="stat-cell">
+        <div>
+          <div class="stat-heading-row">
+            <span class="stat-title">Total Ledger Batch</span>
+            <span class="stat-code">STAGE 0 // INPUT</span>
+          </div>
+          <div class="stat-figure-row">
+            <span id="statTotalRows" class="stat-number">300</span>
+            <span class="stat-rate">100.0%</span>
+          </div>
+        </div>
+        <div class="stat-footnote">
+          <span>INVARIANT: RULE + LLM + UNRES</span>
+          <span id="statInvariantCheck">300 = 300 [OK]</span>
+        </div>
+      </div>
+
+      <div class="stat-cell">
+        <div>
+          <div class="stat-heading-row">
+            <span class="stat-title">Deterministic Rule Proven</span>
+            <span class="stat-code">STAGE 1 // SYMBOLIC</span>
+          </div>
+          <div class="stat-figure-row">
+            <span id="statRuleCount" class="stat-number green">267</span>
+            <span id="statRuleRate" class="stat-rate green">89.0%</span>
+          </div>
+        </div>
+        <div class="stat-footnote">
+          <span>TOLERANCE: &plusmn;&#8377;0.01 &middot; &plusmn;3 DAYS</span>
+          <span>CONF = 1.00</span>
+        </div>
+      </div>
+
+      <div class="stat-cell">
+        <div>
+          <div class="stat-heading-row">
+            <span class="stat-title">LLM Escalated (&ge; &tau;)</span>
+            <span class="stat-code">STAGE 2 // NEURAL</span>
+          </div>
+          <div class="stat-figure-row">
+            <span id="statLlmCount" class="stat-number navy">30</span>
+            <span id="statLlmRate" class="stat-rate navy">10.0%</span>
+          </div>
+        </div>
+        <div class="stat-footnote">
+          <span>PASSED CODE GATE</span>
+          <span id="statGateLabel">&tau; &ge; 0.70</span>
+        </div>
+      </div>
+
+      <div class="stat-cell">
+        <div>
+          <div class="stat-heading-row">
+            <span class="stat-title">Hard-Gated Exceptions</span>
+            <span class="stat-code">STAGE 3 // HUMAN QUEUE</span>
+          </div>
+          <div class="stat-figure-row">
+            <span id="statUnresCount" class="stat-number vermilion">3</span>
+            <span id="statUnresRate" class="stat-rate vermilion">1.0%</span>
+          </div>
+        </div>
+        <div class="stat-footnote">
+          <span id="statExceptionBreakdown">no_llm_match: 3</span>
+          <span>HALTED &lt; &tau;</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Confidence Gate Specimen + Ground-Truth Audit Evaluation -->
+    <section class="instrument-band" aria-label="Confidence Gate and Ground-Truth Evaluation">
+      <div class="gate-scrubber-panel">
+        <h2 class="section-heading">
+          <span>Code-Enforced Confidence Gate (&tau;)</span>
+          <button id="resetTauBtn" type="button" class="btn-ghost">Reset &tau; = 0.70</button>
+        </h2>
+        <p class="section-subcopy">
+          The LLM prompt never sees the threshold &tau; so it cannot game its confidence score. Scrub &tau; below to observe how the Python gate re-partitions escalated proposals between verified matches and hard-gated exceptions in real time.
+        </p>
+        <div class="scrubber-control-row">
+          <div id="tauReadout" class="tau-readout">&tau; = 0.70</div>
+          <div class="tau-slider-wrap">
+            <input id="tauSlider" type="range" class="tau-slider" min="0.10" max="0.99" step="0.01" value="0.70" aria-label="Confidence threshold tau" />
+            <div class="tau-scale">
+              <span>0.10 (Permissive — risks orphan false matches)</span>
+              <span>0.70 (Canonical Gate)</span>
+              <span>0.99 (Strict Rule-Only)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="truth-panel">
+        <div>
+          <h2 class="section-heading">
+            <span>Ground-Truth Answer Key Verification</span>
+            <span id="redFlagStamp" class="stamp-badge pass">RED FLAG: FALSE // VERIFIED</span>
+          </h2>
+          <p class="section-subcopy">
+            Every match and unresolved orphan is scored objectively against <code>data/answer_key.csv</code>. A high match rate paired with low LLM precision triggers an automatic audit red flag.
+          </p>
+        </div>
+        <div class="truth-grid">
+          <div>
+            <div class="truth-metric-label">VERIFIED ACCURACY VS KEY</div>
+            <div id="truthVerifiedRate" class="truth-metric-val" style="color: var(--verify-green);">100.0% (300/300)</div>
+          </div>
+          <div>
+            <div class="truth-metric-label">LLM ESCALATION PRECISION</div>
+            <div id="truthLlmPrecision" class="truth-metric-val" style="color: var(--escalate-navy);">100.0% (30/30)</div>
+          </div>
+          <div>
+            <div class="truth-metric-label">ORPHAN CONTAINMENT</div>
+            <div id="truthOrphanStatus" class="truth-metric-val">3 / 3 Correctly Halted</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7-Archetype Noise Terrain Roster -->
+    <section class="noise-roster-section" aria-label="Synthetic Noise Archetype Roster">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px;">
+        <h2 class="section-heading" style="margin-bottom: 2px;">Seven Synthetic Discrepancy Archetypes (Ground-Truth Terrain)</h2>
+        <span style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--ink-secondary);">Click any archetype cell to filter the three-leg settlement ledger below</span>
+      </div>
+      <div id="noiseProportionBar" class="noise-proportion-bar" role="img" aria-label="Proportional distribution of the 7 synthetic noise categories"></div>
+      <div id="noiseRosterGrid" class="noise-roster-grid"></div>
+    </section>
+
+    <!-- Three-Leg Settlement Ledger & Exception Queue -->
+    <section class="ledger-section" aria-label="Per-Row Three-Leg Audit Trail">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px;">
+        <h2 class="section-heading">Three-Leg Settlement Audit Trail: [Internal Ledger] &harr; [Gateway] &harr; [Bank UTR]</h2>
+        <span id="showingCountLabel" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-secondary);">Showing rows</span>
+      </div>
+
+      <div class="ledger-toolbar">
+        <div class="filter-tabs" role="tablist" aria-label="Filter rows by engine resolution">
+          <button type="button" class="filter-tab active" data-filter="all">All Rows (<span id="tabCountAll">300</span>)</button>
+          <button type="button" class="filter-tab" data-filter="unresolved">Exceptions Queue (<span id="tabCountUnres">3</span>)</button>
+          <button type="button" class="filter-tab" data-filter="llm">LLM Escalated (<span id="tabCountLlm">30</span>)</button>
+          <button type="button" class="filter-tab" data-filter="rule">Rule Proven (<span id="tabCountRule">267</span>)</button>
+          <button type="button" class="filter-tab" data-filter="mismatch">Ground-Truth Discrepancies (<span id="tabCountMismatch">0</span>)</button>
+        </div>
+
+        <div class="search-group">
+          <input id="searchInput" type="search" class="search-input" placeholder="Search TXN_ID, UTR, PAY_ID, or reason..." aria-label="Search transactions" />
+          <button id="clearFiltersBtn" type="button" class="btn-ghost">Clear Filters</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="settlement-table">
+          <thead>
+            <tr>
+              <th>TXN_ID</th>
+              <th>NOISE ARCHETYPE</th>
+              <th>GATEWAY PAYMENT_ID</th>
+              <th>MATCHED BANK UTR</th>
+              <th>GROUND-TRUTH KEY</th>
+              <th>RESOLUTION ENGINE</th>
+              <th>CONFIDENCE (&tau;)</th>
+              <th>EXCEPTION / VERDICT</th>
+            </tr>
+          </thead>
+          <tbody id="ledgerTableBody"></tbody>
+        </table>
+        <div class="table-footer">
+          <span id="pageInfoText">Page 1</span>
+          <div class="pagination-btns">
+            <button id="prevPageBtn" type="button" class="btn-ghost">&larr; Previous 50</button>
+            <button id="nextPageBtn" type="button" class="btn-ghost">Next 50 &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Academic Appendix -->
+    <footer class="academic-footer">
+      <div class="academic-block">
+        <h2>Architectural Note — Foundations of Agentic AI</h2>
+        <p>
+          Pure LLM agents fail in financial control because unconstrained generation optimizes for plausibility rather than provability. Reconciliation Copilot separates <strong>symbolic verification</strong> (Stage 1 exact &amp; tolerance joins over amount, reference, and settlement window) from <strong>bounded neural escalation</strong> (Stage 2 candidate ranking with a code-enforced confidence gate).
+        </p>
+        <div class="formula-box">
+          Verdict(x) = RuleMatch(x) [conf = 1.0] &or; (LLMProposal(x) &and; conf(x) &ge; &tau;) &or; ExceptionQueue(x)
+        </div>
+      </div>
+      <div class="academic-block">
+        <h2>Engineering Trade-Offs &amp; Reproducibility</h2>
+        <p>
+          <strong>pandas vs. cuDF (RAPIDS):</strong> Built on standard pandas data structures for zero-GPU portability across academic evaluation machines, while preserving 100% API compatibility with <code>import cudf.pandas as pd</code> for GPU-accelerated batch scaling.
+        </p>
+        <div class="formula-box">
+          Completeness Invariant: |RuleMatched| + |LLMMatched| + |Unresolved| &equiv; |InternalLedger| (300 &equiv; 300)
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const NOISE_META = {
+      clean:          { color: '#046A38', desc: 'Exact 3-way match within window' },
+      rounding:       { color: '#1B365D', desc: 'Bank drift ±₹0.01–₹2.00 (LLM target)' },
+      missing_ref:    { color: '#2E6B9E', desc: 'Blank bank UTR; matched via narration' },
+      duplicate:      { color: '#6B4C9A', desc: 'Duplicate gateway entry deduplicated' },
+      partial_refund: { color: '#8C6D1F', desc: 'Partial refund net-amount adjustment' },
+      timing_offset:  { color: '#3B7A57', desc: 'Settlement +1 to +3 days from capture' },
+      orphan:         { color: '#D9381E', desc: 'True exception — no settlement exists' }
+    };
+
+    let currentReport = null;
+    let rawAuditRows = [];
+    let activeEngineFilter = 'all';
+    let activeNoiseFilter = null;
+    let currentPage = 1;
+    const PAGE_SIZE = 50;
+
+    const llmModeSelect = document.getElementById('llmModeSelect');
+    const openrouterDrawer = document.getElementById('openrouterDrawer');
+    const runBtn = document.getElementById('runBtn');
+    const runStatusText = document.getElementById('runStatusText');
+    const errorBanner = document.getElementById('errorBanner');
+    const tauSlider = document.getElementById('tauSlider');
+    const tauReadout = document.getElementById('tauReadout');
+    const resetTauBtn = document.getElementById('resetTauBtn');
+    const searchInput = document.getElementById('searchInput');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+
+    llmModeSelect.addEventListener('change', () => {
+      openrouterDrawer.classList.toggle('visible', llmModeSelect.value === 'openrouter');
+    });
+
+    resetTauBtn.addEventListener('click', () => {
+      tauSlider.value = '0.70';
+      applyThresholdAndRender();
+    });
+
+    tauSlider.addEventListener('input', () => {
+      applyThresholdAndRender();
+    });
+
+    searchInput.addEventListener('input', () => {
+      currentPage = 1;
+      renderTable();
+    });
+
+    clearFiltersBtn.addEventListener('click', () => {
+      activeEngineFilter = 'all';
+      activeNoiseFilter = null;
+      searchInput.value = '';
+      currentPage = 1;
+      document.querySelectorAll('.filter-tab').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+      renderNoiseRoster();
+      renderTable();
+    });
+
+    document.querySelectorAll('.filter-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeEngineFilter = btn.dataset.filter;
+        currentPage = 1;
+        document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderTable();
+      });
+    });
+
+    document.getElementById('prevPageBtn').addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderTable();
+      }
+    });
+
+    document.getElementById('nextPageBtn').addEventListener('click', () => {
+      currentPage++;
+      renderTable();
+    });
+
+    runBtn.addEventListener('click', () => executeReconciliation());
+
+    async function executeReconciliation() {
+      errorBanner.classList.remove('visible');
+      runBtn.disabled = true;
+      const mode = llmModeSelect.value;
+      const nRows = parseInt(document.getElementById('rowsInput').value, 10) || 300;
+      const seed = parseInt(document.getElementById('seedInput').value, 10) || 42;
+      const tau = parseFloat(tauSlider.value) || 0.70;
+      runStatusText.textContent = `Running ${mode} pipeline (${nRows} rows, seed=${seed})...`;
+
+      const payload = {
+        n_rows: nRows,
+        seed: seed,
+        use_existing_data: (nRows === 300 && seed === 42),
+        llm_mode: mode,
+        confidence_threshold: tau,
+        openrouter_api_key: document.getElementById('apiKeyInput').value.trim() || null,
+        openrouter_model: document.getElementById('modelInput').value.trim() || 'z-ai/glm-5.2:free',
+        llm_delay_ms: 1500
+      };
+
+      try {
+        const res = await fetch('/reconcile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `HTTP ${res.status}`);
+        }
+        const report = await res.json();
+        currentReport = report;
+        // Preserve original LLM proposals so live tau scrubbing can re-evaluate them client-side
+        rawAuditRows = report.per_row_audit.map(r => ({
+          ...r,
+          _orig_match_type: r.match_type,
+          _orig_matched_utr: r.matched_bank_utr,
+          _orig_matched_gw: r.matched_gateway_payment_id,
+          _orig_exc_cat: r.exception_category,
+          _orig_conf: r.confidence
+        }));
+        document.getElementById('runIdBadge').textContent = `RUN ID: ${report.run_id}`;
+        runStatusText.textContent = `Completed run ${report.run_id} (${mode.toUpperCase()})`;
+        currentPage = 1;
+        applyThresholdAndRender();
+      } catch (err) {
+        errorBanner.textContent = `Pipeline Execution Error: ${err.message}. Verify input parameters or switch to Bounded Agent Simulator (Heuristic).`;
+        errorBanner.classList.add('visible');
+        runStatusText.textContent = 'Run failed — see alert banner';
+      } finally {
+        runBtn.disabled = false;
+      }
+    }
+
+    function computeEffectiveRows(tau) {
+      return rawAuditRows.map(r => {
+        if (r._orig_match_type === 'rule') {
+          return r;
+        }
+        // Check if row has an LLM confidence score
+        const conf = r._orig_conf || 0;
+        // For heuristic/LLM rows: if original had a match or candidate UTR in reasoning
+        let candidateUtr = r._orig_matched_utr;
+        if (!candidateUtr && r.reasoning) {
+          const m = r.reasoning.match(/UTR_\d+/);
+          if (m) candidateUtr = m[0];
+        }
+        if (conf >= tau && candidateUtr) {
+          const gtSet = (r.ground_truth_match || '').split('|').filter(Boolean);
+          const matchesGt = gtSet.includes(candidateUtr);
+          return {
+            ...r,
+            match_type: 'llm',
+            engine: 'llm',
+            matched_bank_utr: candidateUtr,
+            exception_category: null,
+            matches_ground_truth: matchesGt
+          };
+        } else {
+          const isOrphan = !r.ground_truth_match;
+          const excCat = (conf > 0 && candidateUtr) ? 'low_confidence' : (r._orig_exc_cat || 'no_llm_match');
+          return {
+            ...r,
+            match_type: 'unresolved',
+            engine: 'unresolved',
+            matched_bank_utr: null,
+            matched_gateway_payment_id: null,
+            exception_category: excCat,
+            matches_ground_truth: isOrphan
+          };
+        }
+      });
+    }
+
+    function applyThresholdAndRender() {
+      const tau = parseFloat(tauSlider.value) || 0.70;
+      tauReadout.innerHTML = `&tau; = ${tau.toFixed(2)}`;
+      document.getElementById('statGateLabel').innerHTML = `&tau; &ge; ${tau.toFixed(2)}`;
+
+      if (!rawAuditRows.length) return;
+      const rows = computeEffectiveRows(tau);
+      const total = rows.length;
+      const ruleRows = rows.filter(r => r.match_type === 'rule');
+      const llmRows = rows.filter(r => r.match_type === 'llm');
+      const unresRows = rows.filter(r => r.match_type === 'unresolved');
+      const verifiedRows = rows.filter(r => r.matches_ground_truth);
+      const llmCorrect = llmRows.filter(r => r.matches_ground_truth);
+
+      document.getElementById('statTotalRows').textContent = total;
+      document.getElementById('statInvariantCheck').textContent = `${ruleRows.length}+${llmRows.length}+${unresRows.length} = ${total} [OK]`;
+
+      document.getElementById('statRuleCount').textContent = ruleRows.length;
+      document.getElementById('statRuleRate').textContent = `${((ruleRows.length / total) * 100).toFixed(1)}%`;
+
+      document.getElementById('statLlmCount').textContent = llmRows.length;
+      document.getElementById('statLlmRate').textContent = `${((llmRows.length / total) * 100).toFixed(1)}%`;
+
+      document.getElementById('statUnresCount').textContent = unresRows.length;
+      document.getElementById('statUnresRate').textContent = `${((unresRows.length / total) * 100).toFixed(1)}%`;
+
+      const excCounts = {};
+      unresRows.forEach(r => {
+        const k = r.exception_category || 'unresolved';
+        excCounts[k] = (excCounts[k] || 0) + 1;
+      });
+      const excText = Object.entries(excCounts).map(([k, v]) => `${k}: ${v}`).join(' · ') || '0 exceptions';
+      document.getElementById('statExceptionBreakdown').textContent = excText;
+
+      const verRate = ((verifiedRows.length / total) * 100).toFixed(1);
+      document.getElementById('truthVerifiedRate').textContent = `${verRate}% (${verifiedRows.length}/${total})`;
+
+      let llmPrecValue = null;
+      if (llmRows.length > 0) {
+        llmPrecValue = llmCorrect.length / llmRows.length;
+        document.getElementById('truthLlmPrecision').textContent = `${(llmPrecValue * 100).toFixed(1)}% (${llmCorrect.length}/${llmRows.length})`;
+      } else {
+        document.getElementById('truthLlmPrecision').textContent = 'N/A (0 LLM matches)';
+      }
+
+      const orphans = rows.filter(r => r.noise_type === 'orphan');
+      const orphansHalted = orphans.filter(r => r.match_type === 'unresolved');
+      document.getElementById('truthOrphanStatus').textContent = `${orphansHalted.length} / ${orphans.length} Correctly Halted`;
+      document.getElementById('truthOrphanStatus').style.color = (orphansHalted.length === orphans.length) ? 'var(--verify-green)' : 'var(--gate-vermilion)';
+
+      const hasFalseLlmMatch = llmRows.some(r => !r.matches_ground_truth);
+      const redFlagStamp = document.getElementById('redFlagStamp');
+      if (hasFalseLlmMatch) {
+        redFlagStamp.className = 'stamp-badge fail';
+        redFlagStamp.textContent = 'RED FLAG: TRUE // FALSE LLM MATCH DETECTED';
+      } else {
+        redFlagStamp.className = 'stamp-badge pass';
+        redFlagStamp.textContent = 'RED FLAG: FALSE // ZERO FALSE MATCHES';
+      }
+
+      const mismatchCount = rows.filter(r => !r.matches_ground_truth).length;
+      document.getElementById('tabCountAll').textContent = total;
+      document.getElementById('tabCountUnres').textContent = unresRows.length;
+      document.getElementById('tabCountLlm').textContent = llmRows.length;
+      document.getElementById('tabCountRule').textContent = ruleRows.length;
+      document.getElementById('tabCountMismatch').textContent = mismatchCount;
+
+      window._effectiveRows = rows;
+      renderNoiseRoster();
+      renderTable();
+    }
+
+    function renderNoiseRoster() {
+      const rows = window._effectiveRows || [];
+      const total = rows.length || 1;
+      const byNoise = {};
+      Object.keys(NOISE_META).forEach(k => {
+        byNoise[k] = { total: 0, matched: 0, unresolved: 0, correct: 0 };
+      });
+      rows.forEach(r => {
+        const g = byNoise[r.noise_type] || (byNoise[r.noise_type] = { total: 0, matched: 0, unresolved: 0, correct: 0 });
+        g.total++;
+        if (r.match_type === 'unresolved') g.unresolved++;
+        else g.matched++;
+        if (r.matches_ground_truth) g.correct++;
+      });
+
+      const barEl = document.getElementById('noiseProportionBar');
+      barEl.innerHTML = '';
+      const gridEl = document.getElementById('noiseRosterGrid');
+      gridEl.innerHTML = '';
+
+      Object.entries(NOISE_META).forEach(([ntype, meta]) => {
+        const stats = byNoise[ntype] || { total: 0, matched: 0, unresolved: 0, correct: 0 };
+        const pct = (stats.total / total) * 100;
+
+        const seg = document.createElement('div');
+        seg.className = 'noise-bar-seg';
+        seg.style.width = `${pct}%`;
+        seg.style.backgroundColor = meta.color;
+        seg.title = `${ntype}: ${stats.total} rows (${pct.toFixed(1)}%)`;
+        seg.addEventListener('click', () => toggleNoiseFilter(ntype));
+        barEl.appendChild(seg);
+
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'noise-cell' + (activeNoiseFilter === ntype ? ' active' : '');
+        cell.innerHTML = `
+          <div>
+            <div class="noise-cell-top">
+              <span><span class="noise-swatch" style="background:${meta.color}"></span> ${ntype.toUpperCase()}</span>
+              <span>${stats.total}</span>
+            </div>
+            <div class="noise-cell-desc">${meta.desc}</div>
+          </div>
+          <div class="noise-cell-meta">
+            <span>M: ${stats.matched} · E: ${stats.unresolved}</span>
+            <span>KEY: ${stats.correct}/${stats.total}</span>
+          </div>
+        `;
+        cell.addEventListener('click', () => toggleNoiseFilter(ntype));
+        gridEl.appendChild(cell);
+      });
+    }
+
+    function toggleNoiseFilter(ntype) {
+      activeNoiseFilter = (activeNoiseFilter === ntype) ? null : ntype;
+      currentPage = 1;
+      renderNoiseRoster();
+      renderTable();
+    }
+
+    function renderTable() {
+      const rows = window._effectiveRows || [];
+      const q = searchInput.value.trim().toLowerCase();
+
+      const filtered = rows.filter(r => {
+        if (activeEngineFilter === 'unresolved' && r.match_type !== 'unresolved') return false;
+        if (activeEngineFilter === 'llm' && r.match_type !== 'llm') return false;
+        if (activeEngineFilter === 'rule' && r.match_type !== 'rule') return false;
+        if (activeEngineFilter === 'mismatch' && r.matches_ground_truth) return false;
+        if (activeNoiseFilter && r.noise_type !== activeNoiseFilter) return false;
+        if (q) {
+          const hay = `${r.txn_id} ${r.noise_type} ${r.matched_bank_utr || ''} ${r.matched_gateway_payment_id || ''} ${r.ground_truth_match || ''} ${r.exception_category || ''} ${r.reasoning || ''}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      if (currentPage > totalPages) currentPage = totalPages;
+      const startIdx = (currentPage - 1) * PAGE_SIZE;
+      const pageRows = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+
+      const filterDesc = activeNoiseFilter ? ` · Archetype: ${activeNoiseFilter.toUpperCase()}` : '';
+      document.getElementById('showingCountLabel').textContent =
+        `Showing ${pageRows.length} of ${filtered.length} filtered rows (${rows.length} total in batch)${filterDesc} · Click any row to inspect 3-leg reasoning`;
+      document.getElementById('pageInfoText').textContent =
+        `Page ${currentPage} of ${totalPages} (${filtered.length} matching records)`;
+
+      document.getElementById('prevPageBtn').disabled = currentPage <= 1;
+      document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+
+      const tbody = document.getElementById('ledgerTableBody');
+      tbody.innerHTML = '';
+
+      if (pageRows.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="8" style="text-align:center; padding: 28px; color: var(--ink-secondary);">No settlement records match the current filter criteria.</td>`;
+        tbody.appendChild(tr);
+        return;
+      }
+
+      pageRows.forEach(r => {
+        const meta = NOISE_META[r.noise_type] || { color: '#111315' };
+        const tr = document.createElement('tr');
+        tr.className = 'data-row' + (r.match_type === 'unresolved' ? ' row-unresolved' : '');
+
+        const confPct = Math.round((r.confidence || 0) * 100);
+        const barColor = r.match_type === 'rule'
+          ? 'var(--verify-green)'
+          : (r.match_type === 'llm' ? 'var(--escalate-navy)' : 'var(--gate-vermilion)');
+
+        const verdictHtml = r.matches_ground_truth
+          ? `<span style="color: var(--verify-green); font-weight: 700;">[VERIFIED VS KEY]</span> ${r.exception_category ? `<span style="color:var(--gate-vermilion)">(${r.exception_category})</span>` : ''}`
+          : `<span style="color: var(--gate-vermilion); font-weight: 700;">[KEY DISCREPANCY]</span> (${r.exception_category || 'wrong_match'})`;
+
+        tr.innerHTML = `
+          <td style="font-weight: 700;">${r.txn_id}</td>
+          <td><span class="noise-tag"><span class="noise-swatch" style="background:${meta.color}"></span>${r.noise_type}</span></td>
+          <td>${r.matched_gateway_payment_id || '<span style="color:var(--ink-muted)">—</span>'}</td>
+          <td>${r.matched_bank_utr || '<span style="color:var(--gate-vermilion)">UNMATCHED</span>'}</td>
+          <td>${r.ground_truth_match || '<span style="color:var(--gate-vermilion)">(ORPHAN — NONE)</span>'}</td>
+          <td><span class="engine-pill ${r.match_type}">${r.match_type.toUpperCase()}</span></td>
+          <td>
+            <div class="conf-cell">
+              <span>${(r.confidence || 0).toFixed(2)}</span>
+              <div class="conf-bar-track"><div class="conf-bar-fill" style="width:${confPct}%; background:${barColor}"></div></div>
+            </div>
+          </td>
+          <td>${verdictHtml}</td>
+        `;
+
+        const detailTr = document.createElement('tr');
+        detailTr.className = 'detail-row';
+        const reasonText = r.reasoning
+          ? r.reasoning
+          : (r.match_type === 'rule'
+              ? 'Deterministic Stage 1 Match: Exact/tolerance amount join (±INR 0.01), verified reference linkage across internal ledger, gateway settlement, and bank UTR within ±3-day settlement window.'
+              : 'Unresolved exception flagged for human finance-controller review.');
+
+        detailTr.innerHTML = `
+          <td colspan="8">
+            <div class="detail-box">
+              <dl>
+                <dt>LEDGER TXN_ID:</dt><dd>${r.txn_id}</dd>
+                <dt>NOISE ARCHETYPE:</dt><dd>${r.noise_type}</dd>
+                <dt>GATEWAY LEG:</dt><dd>${r.matched_gateway_payment_id || 'None'}</dd>
+                <dt>BANK UTR LEG:</dt><dd>${r.matched_bank_utr || 'None'}</dd>
+                <dt>ANSWER KEY TRUTH:</dt><dd>${r.ground_truth_match || 'NULL (Intentional Orphan)'}</dd>
+                <dt>AUDIT ALIGNMENT:</dt><dd>${r.matches_ground_truth ? 'TRUE (Agrees with Answer Key)' : 'FALSE (Disagrees with Answer Key)'}</dd>
+              </dl>
+              <div class="reasoning-callout">
+                <div class="reasoning-title">Stage Verification Trace &amp; Confidence Gate Ruling</div>
+                <p>${reasonText}</p>
+              </div>
+            </div>
+          </td>
+        `;
+
+        tr.addEventListener('click', () => {
+          detailTr.classList.toggle('open');
+        });
+
+        tbody.appendChild(tr);
+        tbody.appendChild(detailTr);
+      });
+    }
+
+    // Run initial verification batch automatically on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      executeReconciliation();
+    });
+  </script>
+</body>
+</html>

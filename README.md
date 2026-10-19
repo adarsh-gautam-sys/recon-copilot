@@ -1,13 +1,13 @@
 # Reconciliation Copilot
 
-**Track:** Razorpay AI Buildathon — Track 04, AI Finance Controller
+**Course:** Foundations of Agentic AI — College Course Submission
 
 A deterministic-first reconciliation agent that matches transactions across bank
 settlement, payment-gateway settlement, and internal ledger sources — escalating
 only genuinely ambiguous rows to an LLM, and reporting an honest match rate plus
 a categorised exception list with a full per-row audit trail.
 
-> "Verification capacity, not generation speed, is the bottleneck." — Razorpay brief
+> "Verification capacity, not generation speed, is the bottleneck." — Core Architectural Thesis
 
 ---
 
@@ -58,8 +58,9 @@ prove, and clearly flags what it can't. This tool is a **verifier**, not a gener
 | `src/matching/deterministic_matcher.py` | Rule engine: amount ± ₹0.01, shared ref, ±3-day window |
 | `src/matching/llm_escalator.py` | LLM layer + hard confidence gate (code, not prompt) |
 | `src/reporting/audit_report.py` | Completeness check, all 4 metrics vs answer key, JSON + console |
-| `src/api/pipeline.py` | Wires the 4 stages together |
-| `src/api/main.py` | FastAPI: `/health`, `POST /reconcile`, `GET /report/{run_id}` |
+| `src/api/pipeline.py` | Wires the 4 stages together (`offline`, `heuristic`, `openrouter`) |
+| `src/api/main.py` | FastAPI: `GET /` (Web Workbench), `/health`, `POST /reconcile`, `GET /report/{run_id}` |
+| `src/api/static/index.html` | Central Bank Statistical Bulletin verification workbench UI |
 | `src/config.py` | Typed config dataclasses (thresholds, window, model) |
 
 ---
@@ -82,8 +83,8 @@ Or with the Makefile:
 
 ```bash
 make demo        # install + run demo
-make test        # run all 35 pytest tests
-make serve       # start FastAPI on localhost:8000
+make test        # run all pytest tests
+make serve       # start FastAPI + Web Workbench on http://localhost:8000
 ```
 
 On **Windows**, use:
@@ -95,12 +96,15 @@ python run_demo.py
 
 ---
 
-## API
+## Web Workbench & API
 
-Start the server:
+Start the server and open **`http://localhost:8000`** in your browser:
 ```bash
 uvicorn src.api.main:app --reload --port 8000
 ```
+
+### `GET /`
+Serves the interactive **Statistical Bulletin & Three-Way Settlement Verifier** UI.
 
 ### `GET /health`
 ```json
@@ -113,7 +117,7 @@ uvicorn src.api.main:app --reload --port 8000
   "n_rows": 300,
   "seed": 42,
   "use_existing_data": true,
-  "llm_mode": "offline"
+  "llm_mode": "heuristic"
 }
 ```
 

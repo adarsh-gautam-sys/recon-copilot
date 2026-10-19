@@ -104,3 +104,29 @@ def test_get_report_not_found(client):
     r = client.get("/report/DOESNOTEXIST_000000")
     assert r.status_code == 404
     assert "not found" in r.json()["detail"].lower()
+
+
+# ---------------------------------------------------------------------------
+# Test 5 — GET / serves the web workbench HTML and heuristic mode resolves rounding
+# ---------------------------------------------------------------------------
+
+def test_workbench_and_heuristic_mode(client):
+    html_r = client.get("/")
+    assert html_r.status_code == 200
+    assert "Reconciliation Copilot" in html_r.text
+
+    r = client.post("/reconcile", json={
+        "use_existing_data": True,
+        "llm_mode": "heuristic",
+        "confidence_threshold": 0.70,
+        "n_rows": 300,
+        "seed": 42,
+    })
+    assert r.status_code == 200
+    body = r.json()
+    assert body["rule_matched"] == 267
+    assert body["llm_matched"] == 30
+    assert body["unresolved"] == 3
+    assert body["red_flag"] is False
+    assert body["verified_match_rate"] == 1.0
+
