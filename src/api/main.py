@@ -82,8 +82,8 @@ class ReconcileRequest(BaseModel):
         description="Code-enforced confidence gate threshold for LLM proposals."
     )
     ollama_model: str = Field(
-        "qwen3.1",
-        description="Ollama model name ('qwen3.1' or 'gemma4')."
+        "gemma4",
+        description="Ollama model name ('gemma4' or 'qwen3.1')."
     )
     ollama_host: str = Field(
         "https://ollama.com/v1",

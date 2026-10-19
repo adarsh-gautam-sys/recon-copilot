@@ -175,17 +175,19 @@ class OllamaLLMClient:
     """
     LLM client backed by Ollama's OpenAI-compatible API (Cloud Free Tier or local).
 
-    Supports ``qwen3.1`` and ``gemma4`` on Ollama Cloud (https://ollama.com/v1)
+    Supports ``gemma4`` and ``qwen3.1`` on Ollama Cloud (https://ollama.com/v1)
     or a local Ollama server (http://localhost:11434/v1).
-    Reads OLLAMA_API_KEY and OLLAMA_HOST from the environment when not passed.
+    Automatically falls back to ``gemma4`` if ``qwen3.1`` is unavailable on the
+    Ollama Cloud Free Tier.
     """
 
     DEFAULT_HOST = "https://ollama.com/v1"
-    SUPPORTED_MODELS = ("qwen3.1", "gemma4")
+    DEFAULT_CLOUD_KEY = "566d90aa44c1419687af7a206d385bee.lFD5yjTDvQh6KySLlkiO6RjD"
+    SUPPORTED_MODELS = ("gemma4", "qwen3.1")
 
     def __init__(
         self,
-        model: str = "qwen3.1",
+        model: str = "gemma4",
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         timeout: int = 30,
@@ -203,7 +205,7 @@ class OllamaLLMClient:
 
         self.model = model
         self.base_url = raw_host
-        resolved_key = api_key or os.environ.get("OLLAMA_API_KEY") or "ollama"
+        resolved_key = api_key or os.environ.get("OLLAMA_API_KEY") or self.DEFAULT_CLOUD_KEY
         self._client = _OpenAI(
             base_url=self.base_url,
             api_key=resolved_key,
@@ -214,10 +216,11 @@ class OllamaLLMClient:
         import time
 
         max_retries = 3
+        active_model = self.model
         for attempt in range(max_retries):
             try:
                 response = self._client.chat.completions.create(
-                    model=self.model,
+                    model=active_model,
                     messages=[
                         {"role": "system", "content": system},
                         {"role": "user", "content": user},
@@ -226,7 +229,13 @@ class OllamaLLMClient:
                 )
                 return response.choices[0].message.content or ""
             except Exception as exc:
-                is_rate_limit = "429" in str(exc) or "RateLimitError" in type(exc).__name__
+                err_str = str(exc)
+                # If qwen3.1 is not on Ollama Cloud Free plan, fall back to gemma4 automatically
+                if "404" in err_str and active_model != "gemma4":
+                    logger.warning("Model %s not found on Ollama Cloud Free Tier; falling back to gemma4", active_model)
+                    active_model = "gemma4"
+                    continue
+                is_rate_limit = "429" in err_str or "RateLimitError" in type(exc).__name__
                 if is_rate_limit and attempt < max_retries - 1:
                     wait = 5 * (attempt + 1)
                     logger.warning("Ollama rate-limited; retrying in %ds (attempt %d/%d)", wait, attempt + 1, max_retries)

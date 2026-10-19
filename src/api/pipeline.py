@@ -37,7 +37,7 @@ class PipelineRequest:
     use_existing_data: bool = True          # skip generation when CSVs already exist
     llm_mode: str = "offline"               # "offline" | "heuristic" | "ollama" | "openrouter"
     confidence_threshold: float = 0.70      # code-enforced confidence gate
-    ollama_model: str = "qwen3.1"           # "qwen3.1" | "gemma4"
+    ollama_model: str = "gemma4"            # "gemma4" | "qwen3.1"
     ollama_host: str = "https://ollama.com/v1"
     ollama_api_key: Optional[str] = None
     openrouter_api_key: Optional[str] = None
