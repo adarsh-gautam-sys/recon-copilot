@@ -170,12 +170,15 @@ Simulated user: a finance-ops analyst who currently reconciles settlement report
 ```
 reconciliation-copilot/
 ├── README.md
-├── PRODUCT.md
-├── DESIGN.md
 ├── streamlit_app.py
 ├── requirements.txt
+├── Makefile
+├── run_demo.py
+├── run_llm_escalation.py
 ├── docs/
-│   └── PRD.md
+│   ├── PRD.md
+│   ├── architecture_diagram_16x9.png
+│   └── mermaid_architecture_16x9.png
 ├── src/
 │   ├── config.py
 │   ├── data_gen/

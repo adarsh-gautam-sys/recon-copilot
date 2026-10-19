@@ -37,3 +37,8 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Local secrets & design scratch
+.streamlit/secrets.toml
+.impeccable/
+

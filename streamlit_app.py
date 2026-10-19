@@ -197,7 +197,7 @@ red_flag = (total_match_rate > 0.70) and (llm_precision is not None and llm_prec
 tab_dashboard, tab_live_ollama, tab_explain = st.tabs([
     "📊 1. Reconciliation Results",
     "🧪 2. Live Ollama (gemma4 / qwen3.1) Tester",
-    "📖 3. How the 4 Agents Work (Viva Guide)",
+    "🏗️ 3. 4-Agent System Architecture",
 ])
 
 with tab_dashboard:
@@ -330,24 +330,29 @@ with tab_live_ollama:
                 )
 
 with tab_explain:
-    st.subheader("📖 How to Explain This Project in 60 Seconds")
+    st.subheader("🏗️ 4-Agent Neuro-Symbolic System Architecture")
+    arch_img = BASE_DIR / "docs" / "architecture_diagram_16x9.png"
+    if arch_img.exists():
+        st.image(str(arch_img), caption="Reconciliation Copilot — 4-Agent Neuro-Symbolic Verification Pipeline", width="stretch")
+
     st.markdown(
         """
-        ### 1. What Problem Does It Solve?
-        When a customer pays online, **3 separate systems** record the money:
-        1. **Internal Ledger** (our app database)
-        2. **Payment Gateway** (settlement processor)
-        3. **Bank Statement** (actual bank UTR credit)
+        ### 1. Problem Formulation
+        Online payments are recorded across **3 independent financial systems**:
+        1. **Internal Ledger (`internal_ledger.csv`)** — application transaction capture.
+        2. **Payment Gateway (`gateway_settlement.csv`)** — processor net settlement and fee deduction.
+        3. **Bank Statement (`bank_settlement.csv`)** — actual bank UTR credit and free-text narration.
 
-        In real life, these 3 files rarely match 100% because of **rounding drift** (e.g., ₹0.50 difference), **missing bank UTR references**, **timing delays** (+1 to +3 days), **duplicates**, **partial refunds**, or **orphan transactions** (captured in app, never settled in bank).
+        Discrepancies arise from **rounding drift** (±₹0.02–₹2.00), **missing bank UTR references**, **settlement timing offsets** (+1 to +3 days), **duplicate gateway captures**, **partial refunds**, and **true orphan transactions** (captured in ledger, never settled in bank).
 
         ---
-        ### 2. Our 4-Agent Pipeline
-        | Stage | Component | What It Does | Why It Matters |
+        ### 2. The 4-Agent Pipeline
+        | Agent | Module | Responsibility | Verification Guarantee |
         | :--- | :--- | :--- | :--- |
-        | **Stage 1** | **Synthetic Data Generator** (`generate_synthetic_data.py`) | Creates 300 realistic transactions across 7 discrepancy types + `answer_key.csv`. | Gives us a 100% objective ground truth to grade the AI. |
-        | **Stage 2** | **Deterministic Rule Agent** (`deterministic_matcher.py`) | Matches exact Order ID, date within ±3 days, and amount within ±₹0.01. | Solves **267 / 300 rows (89%)** in milliseconds with **zero AI cost** and **zero hallucination**. |
-        | **Stage 3** | **Ollama LLM Escalation Agent** (`llm_escalator.py`) | Sends only the **33 unmatched rows** + top-5 close bank candidates to **Ollama (`gemma4` / `qwen3.1`)**. | Resolves the **30 rounding-drift rows** by reading the Order ID inside the bank narration text. |
-        | **Stage 4** | **Code Gate + Audit Reporter** (`audit_report.py`) | Enforces `confidence >= 0.70` in Python code and grades all 300 rows against `answer_key.csv`. | Correctly blocks the **3 true orphan rows** from being falsely matched, achieving **100% precision**. |
+        | **Agent 1: Data & Key Generator** | `src/data_gen/generate_synthetic_data.py` | Generates 300 realistic transactions (`seed=42`) across 7 discrepancy types + `answer_key.csv`. | Provides an immutable ground-truth answer key for objective grading. |
+        | **Agent 2: Deterministic Rule Matcher** | `src/matching/deterministic_matcher.py` | 5-pass symbolic engine matching Order ID, UTR, narration regex, ±3-day window, and ±₹0.01 amount tolerance. | Proves **267 / 300 rows (89.0%)** in `<15ms` at `confidence = 1.00` with zero LLM calls. |
+        | **Agent 3: Ollama LLM Escalator + Gate** | `src/matching/llm_escalator.py` | Sends only the **33 unmatched rows** + top-5 close bank candidates (±10% amount) to **Ollama (`gemma4` / `qwen3.1`)**. | Enforces `confidence >= 0.70` in Python code—matching **30 rounding rows** while halting **3 true orphans**. |
+        | **Agent 4: Ground-Truth Auditor** | `src/reporting/audit_report.py` | Enforces the 300-row completeness invariant and grades every match and exception against `answer_key.csv`. | Achieves **100.0% verified accuracy (300/300)** and **100.0% LLM precision (30/30)**. |
         """
     )
+
